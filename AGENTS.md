@@ -289,6 +289,13 @@ docs/stage-*.md
 docs/environment-setup.md
 ```
 
+Windows 终端与 `conda run` 注意事项：
+
+```text
+脚本打印到控制台的内容应尽量使用 ASCII 文本和相对路径。
+避免直接打印包含中文字符的绝对路径，防止 Windows GBK 编码或 conda run 输出转码报错。
+```
+
 ---
 
 ## 5.1 阶段文档要求
