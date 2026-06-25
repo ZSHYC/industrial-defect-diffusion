@@ -1,0 +1,8 @@
+split,defect_type,image_count,mask_count,missing_masks
+train,good,230,0,0
+test,crack,17,17,0
+test,glue_strip,18,18,0
+test,good,33,0,0
+test,gray_stroke,16,16,0
+test,oil,18,18,0
+test,rough,15,15,0
