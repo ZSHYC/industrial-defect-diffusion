@@ -1,0 +1,23 @@
+{
+  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\211.png",
+  "defect_type": "oil",
+  "output_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\images\\tile_trad_oil_002.png",
+  "output_mask": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\masks\\tile_trad_oil_002_mask.png",
+  "seed": 42,
+  "generation_method": "traditional_rule_based",
+  "parameters": {
+    "center": [
+      212,
+      366
+    ],
+    "radius_x": 115.19572292305337,
+    "radius_y": 74.88639585952093,
+    "point_count": 10,
+    "alpha": 0.3286758921508977,
+    "tint": [
+      169.12306161764369,
+      155.56891480761658,
+      104.3028857649023
+    ]
+  }
+}

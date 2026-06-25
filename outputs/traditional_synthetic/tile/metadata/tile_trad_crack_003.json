@@ -1,0 +1,50 @@
+{
+  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\069.png",
+  "defect_type": "crack",
+  "output_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\images\\tile_trad_crack_003.png",
+  "output_mask": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\masks\\tile_trad_crack_003_mask.png",
+  "seed": 42,
+  "generation_method": "traditional_rule_based",
+  "parameters": {
+    "line_width": 7,
+    "points": [
+      [
+        94,
+        233
+      ],
+      [
+        178,
+        269
+      ],
+      [
+        260,
+        309
+      ],
+      [
+        314,
+        352
+      ],
+      [
+        397,
+        395
+      ],
+      [
+        478,
+        417
+      ]
+    ],
+    "branches": [
+      [
+        [
+          314,
+          352
+        ],
+        [
+          236,
+          379
+        ]
+      ]
+    ],
+    "dark_factor": 0.3060565186237777
+  }
+}

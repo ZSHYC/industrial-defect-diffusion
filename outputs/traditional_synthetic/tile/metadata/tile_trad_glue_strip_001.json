@@ -1,0 +1,23 @@
+{
+  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\182.png",
+  "defect_type": "glue_strip",
+  "output_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\images\\tile_trad_glue_strip_001.png",
+  "output_mask": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\masks\\tile_trad_glue_strip_001_mask.png",
+  "seed": 42,
+  "generation_method": "traditional_rule_based",
+  "parameters": {
+    "center": [
+      281,
+      335
+    ],
+    "strip_width": 74.8045678674166,
+    "strip_height": 169.3644762971116,
+    "angle": 0.16364788466655023,
+    "alpha": 0.3965459999844877,
+    "tint": [
+      228.13516459586504,
+      206.7036546624305,
+      206.30940909001146
+    ]
+  }
+}

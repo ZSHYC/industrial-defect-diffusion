@@ -151,6 +151,7 @@ conda activate industrial-defect-diffusion
 
 - [环境安装记录](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/environment-setup.md)
 - [第 1 阶段：MVTec AD 数据探索与校验](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-01-data-exploration.md)
+- [第 2 阶段：传统规则伪缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-02-traditional-synthesis.md)
 
 后续阶段文档将继续放在：
 
@@ -176,6 +177,18 @@ python scripts/01_explore_dataset.py --data-root "C:\Users\zsh\Desktop\昂坤视
 outputs/eda/tile
 ```
 
+### 传统规则伪缺陷生成脚本
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/02_generate_traditional_defects.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --samples-per-type 5 --seed 42
+```
+
+输出目录：
+
+```text
+outputs/traditional_synthetic/tile
+```
+
 ---
 
 ## 9. Git 约定
@@ -198,4 +211,3 @@ outputs/eda/tile
 2. 动态阶段结果写入 `docs/stage-*.md`。
 3. 协作规则和约束写入 `AGENTS.md`。
 4. 临时实验数据、图像、统计表写入 `outputs/`。
-
