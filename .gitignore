@@ -1,0 +1,85 @@
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Conda local environment folders
+.conda/
+conda-meta/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+Thumbs.db
+Desktop.ini
+
+# OS and temp files
+*.tmp
+*.temp
+*.log
+
+# Local configuration and secrets
+.env
+.env.*
+*.local
+
+# Model weights and large binary artifacts
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+*.engine
+*.trt
+
+# Hugging Face / model download caches
+.cache/
+cache/
+hf_cache/
+huggingface/
+
+# Training artifacts and runtime outputs
+outputs/**/checkpoints/
+outputs/**/weights/
+outputs/**/runs/
+outputs/**/logs/
+outputs/**/predictions/
+outputs/**/models/
+outputs/**/temp/
+outputs/**/cache/
+
+# Keep current lightweight stage outputs under version control
+!outputs/eda/
+!outputs/eda/**/
+!outputs/eda/**/*.csv
+!outputs/eda/**/*.png
+
+# Data directories that should not be committed
+data/
+datasets/
+downloads/
+
