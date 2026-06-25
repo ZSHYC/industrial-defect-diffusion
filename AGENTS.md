@@ -1,6 +1,6 @@
 # AGENTS.md
 
-本文件是给所有后续参与本项目的代码助手看的项目说明与协作规则。  
+本文件是给所有后续参与本项目的代码助手看的项目说明与协作规则。
 所有代码助手在修改本仓库前，都应该先阅读并遵守本文档。
 
 ---
@@ -31,7 +31,7 @@ Diffusion-Based Synthetic Defect Generation for Industrial Anomaly Detection
 构建一个完整、可解释、能用于面试讲解的工业缺陷生成与检测增强流程，验证 Diffusion 生成的工业缺陷图像是否能提升真实缺陷检测或分割效果。
 ```
 
-本项目不是普通的 Stable Diffusion 画图 demo，也不是单纯的图像分割练习。  
+本项目不是普通的 Stable Diffusion 画图 demo，也不是单纯的图像分割练习。
 所有工作都必须围绕下面这个工业问题展开：
 
 ```text
@@ -130,7 +130,7 @@ MVTec_AD/
       rough/
 ```
 
-具体统计结果、截图和本轮数据检查结论不应长期写死在 `AGENTS.md` 中。  
+具体统计结果、截图和本轮数据检查结论不应长期写死在 `AGENTS.md` 中。
 这些内容应写入：
 
 ```text
@@ -149,7 +149,7 @@ outputs/eda/
 C:\Users\zsh\Desktop\昂坤视觉\industrial-defect-diffusion
 ```
 
-`AGENTS.md` 不负责维护“当前完成到哪一步”的动态状态。  
+`AGENTS.md` 不负责维护“当前完成到哪一步”的动态状态。
 它只定义仓库协作规则、目录约定、执行流程和文档要求。
 
 代码助手应默认使用并维护以下结构：
@@ -293,7 +293,7 @@ docs/environment-setup.md
 
 ## 5.1 阶段文档要求
 
-每完成一个阶段，都必须新增或更新一份 Markdown 阶段记录文档。
+每完成一个阶段，都必须新增或更新一份 中文Markdown 阶段记录文档。
 
 文档要求：
 
@@ -351,7 +351,7 @@ docs/stage-06-final-report.md
 不能跳过传统伪缺陷。
 ```
 
-因为传统伪缺陷是 Diffusion 方法的对照组。  
+因为传统伪缺陷是 Diffusion 方法的对照组。
 没有传统对照组，就很难证明 Diffusion 生成缺陷到底有没有价值。
 
 ---
