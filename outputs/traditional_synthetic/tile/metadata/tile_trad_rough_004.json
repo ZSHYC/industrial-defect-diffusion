@@ -1,5 +1,5 @@
 {
-  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\077.png",
+  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\102.png",
   "defect_type": "rough",
   "output_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\images\\tile_trad_rough_004.png",
   "output_mask": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\masks\\tile_trad_rough_004_mask.png",
@@ -7,12 +7,13 @@
   "generation_method": "traditional_rule_based",
   "parameters": {
     "center": [
-      629,
-      295
+      362,
+      499
     ],
-    "radius_x": 79.51264130796417,
-    "radius_y": 52.86592026657685,
-    "point_count": 10,
-    "contrast": 1.5111982957327066
+    "radius_x": 88.89724750577801,
+    "radius_y": 68.62477054373984,
+    "point_count": 13,
+    "contrast": 1.5632840938751285,
+    "brightness_shift": 17.47853142076149
   }
 }

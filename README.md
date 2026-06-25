@@ -189,6 +189,14 @@ conda run -n industrial-defect-diffusion python scripts/02_generate_traditional_
 outputs/traditional_synthetic/tile
 ```
 
+关键输出：
+
+```text
+preview.png
+real_vs_traditional_preview.png
+summary.csv
+```
+
 ---
 
 ## 9. Git 约定

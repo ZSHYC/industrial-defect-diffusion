@@ -143,6 +143,7 @@ images/
 masks/
 metadata/
 preview.png
+real_vs_traditional_preview.png
 summary.csv
 ```
 
@@ -158,6 +159,12 @@ metadata: 25
 
 ```text
 outputs/traditional_synthetic/tile/preview.png
+```
+
+真实样例对比图：
+
+```text
+outputs/traditional_synthetic/tile/real_vs_traditional_preview.png
 ```
 
 汇总表：
@@ -179,18 +186,34 @@ outputs/traditional_synthetic/tile/summary.csv
 
 相对接近真实缺陷的地方：
 
-1. `crack` 的细线和分叉与真实裂纹有相似形态。
-2. `glue_strip` 的半透明长条区域和真实胶条类别有一定对应关系。
-3. `oil` 的半透明不规则斑块与油污扩散效果接近。
+1. `crack` 调整为长主裂纹加少量分支，比短交叉线更接近真实裂纹。
+2. `glue_strip` 调整为长窄半透明不规则胶条，比规则方块更接近真实胶条。
+3. `gray_stroke` 调整为更深的灰黑色擦痕，解决了早期版本几乎看不出异常的问题。
+4. `oil` 的半透明不规则斑块与油污扩散效果接近。
+5. `rough` 通过局部噪声、对比度和亮度扰动，异常区域比早期版本更明显。
 
 ## 8. 哪些地方明显不真实
 
 传统规则方法的局限也很明显：
 
 1. 部分边缘仍然偏人工。
-2. `gray_stroke` 和 `rough` 的纹理变化不够自然。
+2. `gray_stroke` 和 `rough` 虽然更明显，但纹理复杂度仍不如真实样本。
 3. 合成区域和真实成像物理规律之间仍有差距。
 4. 规则方法很难学习真实缺陷中的复杂纹理、透明度和局部结构变化。
+
+## 8.1 逐类比对后的修正
+
+根据真实样例与传统生成样例的并排对比，进行了以下修正：
+
+```text
+crack：从短交叉裂纹改为长主裂纹 + 少量分支。
+glue_strip：从偏方块改为长窄不规则半透明胶条。
+gray_stroke：加深颜色、提高透明融合强度、扩大擦痕宽度。
+oil：增强不规则边界和半透明油污效果。
+rough：增强局部噪声、对比度和亮度扰动。
+```
+
+这次修正的核心目的不是让传统方法变得完美，而是让它更贴近 MVTec AD `tile` 的真实缺陷类别，成为更合格的 Diffusion 对照组。
 
 ## 9. 为什么它只是 baseline
 
@@ -223,4 +246,3 @@ Diffusion Inpainting 缺陷生成
 1. 传统规则伪缺陷已经完成 baseline。
 2. 现在可以对比 Diffusion 是否生成得更自然。
 3. 后续可以验证 Diffusion 合成缺陷是否比传统规则缺陷更有助于下游检测或分割。
-

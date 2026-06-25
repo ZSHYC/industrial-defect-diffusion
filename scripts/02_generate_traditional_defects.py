@@ -74,23 +74,38 @@ def random_polyline(rng: np.random.Generator, width: int, height: int, point_cou
 
 def generate_crack(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
     height, width = image.shape[:2]
-    line_width = int(rng.integers(3, 8))
-    points = random_polyline(rng, width, height, int(rng.integers(4, 7)))
+    line_width = int(rng.integers(5, 11))
+
+    # Real tile cracks are usually long, dominant dark fractures with only small branches.
+    center_x = float(rng.uniform(width * 0.25, width * 0.75))
+    center_y = float(rng.uniform(height * 0.25, height * 0.75))
+    angle = float(rng.uniform(0, np.pi))
+    length = float(rng.uniform(min(width, height) * 0.55, min(width, height) * 0.85))
+    point_count = int(rng.integers(5, 8))
+    direction = np.array([np.cos(angle), np.sin(angle)])
+    normal = np.array([-np.sin(angle), np.cos(angle)])
+    points: list[tuple[int, int]] = []
+    for idx in range(point_count):
+        t = -0.5 + idx / (point_count - 1)
+        base = np.array([center_x, center_y]) + direction * length * t
+        jitter = normal * float(rng.normal(0, min(width, height) * 0.025))
+        x, y = base + jitter
+        points.append((int(np.clip(x, 0, width - 1)), int(np.clip(y, 0, height - 1))))
 
     mask_img = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(mask_img)
     draw.line(points, fill=255, width=line_width, joint="curve")
 
-    branch_count = int(rng.integers(1, 3))
+    branch_count = int(rng.integers(1, 2))
     branches: list[list[tuple[int, int]]] = []
     for _ in range(branch_count):
         anchor = points[int(rng.integers(1, len(points) - 1))]
         branch = [anchor]
-        angle = float(rng.uniform(0, 2 * np.pi))
-        length = float(rng.uniform(min(width, height) * 0.06, min(width, height) * 0.16))
+        branch_angle = angle + float(rng.choice([-1, 1])) * float(rng.uniform(0.65, 1.2))
+        branch_length = float(rng.uniform(min(width, height) * 0.10, min(width, height) * 0.22))
         branch.append((
-            int(np.clip(anchor[0] + np.cos(angle) * length, 0, width - 1)),
-            int(np.clip(anchor[1] + np.sin(angle) * length, 0, height - 1)),
+            int(np.clip(anchor[0] + np.cos(branch_angle) * branch_length, 0, width - 1)),
+            int(np.clip(anchor[1] + np.sin(branch_angle) * branch_length, 0, height - 1)),
         ))
         draw.line(branch, fill=255, width=max(1, line_width - 2))
         branches.append(branch)
@@ -98,7 +113,7 @@ def generate_crack(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndar
     soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.4, 1.2)))), dtype=np.float32) / 255.0
     mask = (np.array(mask_img) > 0).astype(np.uint8)
 
-    dark_factor = float(rng.uniform(0.18, 0.38))
+    dark_factor = float(rng.uniform(0.08, 0.24))
     output = image.astype(np.float32).copy()
     output = output * (1 - soft_mask[..., None]) + output * dark_factor * soft_mask[..., None]
 
@@ -114,16 +129,25 @@ def generate_glue_strip(image: np.ndarray, rng: np.random.Generator) -> tuple[np
     height, width = image.shape[:2]
     center_x = int(rng.integers(width * 0.25, width * 0.75))
     center_y = int(rng.integers(height * 0.25, height * 0.75))
-    strip_w = float(rng.uniform(width * 0.06, width * 0.11))
-    strip_h = float(rng.uniform(height * 0.16, height * 0.28))
+    strip_w = float(rng.uniform(width * 0.055, width * 0.095))
+    strip_h = float(rng.uniform(height * 0.24, height * 0.40))
     angle = float(rng.uniform(-0.9, 0.9))
 
-    corners = np.array([
-        [-strip_w / 2, -strip_h / 2],
-        [strip_w / 2, -strip_h / 2],
-        [strip_w / 2, strip_h / 2],
-        [-strip_w / 2, strip_h / 2],
-    ])
+    # Build a jagged strip instead of a perfect rectangle, closer to torn glue tape.
+    segments = 7
+    left_edge: list[list[float]] = []
+    right_edge: list[list[float]] = []
+    for idx in range(segments + 1):
+        y = -strip_h / 2 + strip_h * idx / segments
+        left_edge.append([
+            -strip_w / 2 + float(rng.uniform(-strip_w * 0.25, strip_w * 0.15)),
+            y + float(rng.uniform(-strip_h * 0.035, strip_h * 0.035)),
+        ])
+        right_edge.append([
+            strip_w / 2 + float(rng.uniform(-strip_w * 0.15, strip_w * 0.25)),
+            y + float(rng.uniform(-strip_h * 0.035, strip_h * 0.035)),
+        ])
+    corners = np.array(left_edge + right_edge[::-1])
     rotation = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
     points_arr = corners @ rotation.T + np.array([center_x, center_y])
     points = [(int(np.clip(x, 0, width - 1)), int(np.clip(y, 0, height - 1))) for x, y in points_arr]
@@ -136,9 +160,12 @@ def generate_glue_strip(image: np.ndarray, rng: np.random.Generator) -> tuple[np
         float(rng.uniform(185, 230)),
         float(rng.uniform(175, 215)),
     ])
-    alpha = float(rng.uniform(0.38, 0.58))
+    alpha = float(rng.uniform(0.52, 0.72))
     output = image.astype(np.float32).copy()
     output = output * (1 - soft_mask[..., None] * alpha) + tint * (soft_mask[..., None] * alpha)
+
+    highlight = np.array([235.0, 235.0, 225.0])
+    output = output * (1 - soft_mask[..., None] * 0.08) + highlight * (soft_mask[..., None] * 0.08)
 
     return output.astype(np.uint8), mask, {
         "center": [center_x, center_y],
@@ -152,17 +179,31 @@ def generate_glue_strip(image: np.ndarray, rng: np.random.Generator) -> tuple[np
 
 def generate_gray_stroke(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
     height, width = image.shape[:2]
-    stroke_width = int(rng.integers(12, 26))
-    points = random_polyline(rng, width, height, int(rng.integers(3, 5)))
+    stroke_width = int(rng.integers(30, 58))
+    points = random_polyline(rng, width, height, int(rng.integers(2, 4)))
 
     mask_img = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(mask_img)
     draw.line(points, fill=255, width=stroke_width, joint="curve")
-    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(4, 8)))), dtype=np.float32) / 255.0
+
+    for point in points:
+        radius_x = int(rng.integers(stroke_width // 2, stroke_width))
+        radius_y = int(rng.integers(stroke_width // 3, max(stroke_width // 3 + 1, stroke_width * 2 // 3)))
+        draw.ellipse(
+            [
+                point[0] - radius_x,
+                point[1] - radius_y,
+                point[0] + radius_x,
+                point[1] + radius_y,
+            ],
+            fill=255,
+        )
+
+    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(3, 7)))), dtype=np.float32) / 255.0
     mask = (soft_mask > 0.12).astype(np.uint8)
 
-    gray_value = float(rng.uniform(65, 115))
-    alpha = float(rng.uniform(0.28, 0.45))
+    gray_value = float(rng.uniform(35, 75))
+    alpha = float(rng.uniform(0.62, 0.85))
     gray = np.full_like(image.astype(np.float32), gray_value)
     output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + gray * (soft_mask[..., None] * alpha)
 
@@ -178,19 +219,28 @@ def generate_oil(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarra
     height, width = image.shape[:2]
     center_x = int(rng.integers(width * 0.25, width * 0.75))
     center_y = int(rng.integers(height * 0.25, height * 0.75))
-    radius_x = float(rng.uniform(width * 0.09, width * 0.18))
-    radius_y = float(rng.uniform(height * 0.08, height * 0.17))
-    point_count = int(rng.integers(10, 18))
+    radius_x = float(rng.uniform(width * 0.10, width * 0.20))
+    radius_y = float(rng.uniform(height * 0.08, height * 0.18))
+    point_count = int(rng.integers(12, 20))
 
     points: list[tuple[int, int]] = []
     for index in range(point_count):
         angle = 2 * np.pi * index / point_count
-        jitter = float(rng.uniform(0.65, 1.25))
+        jitter = float(rng.uniform(0.45, 1.35))
         x = center_x + np.cos(angle) * radius_x * jitter
         y = center_y + np.sin(angle) * radius_y * jitter
         points.append((int(np.clip(x, 0, width - 1)), int(np.clip(y, 0, height - 1))))
 
-    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(8, 16)))
+    if rng.random() < 0.7:
+        tail_anchor = points[int(rng.integers(0, len(points)))]
+        tail_len = float(rng.uniform(min(width, height) * 0.05, min(width, height) * 0.12))
+        tail_angle = float(rng.uniform(0, 2 * np.pi))
+        points.append((
+            int(np.clip(tail_anchor[0] + np.cos(tail_angle) * tail_len, 0, width - 1)),
+            int(np.clip(tail_anchor[1] + np.sin(tail_angle) * tail_len, 0, height - 1)),
+        ))
+
+    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(7, 14)))
     mask = (soft_mask > 0.16).astype(np.uint8)
 
     tint = np.array([
@@ -198,7 +248,7 @@ def generate_oil(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarra
         float(rng.uniform(135, 175)),
         float(rng.uniform(70, 110)),
     ])
-    alpha = float(rng.uniform(0.25, 0.42))
+    alpha = float(rng.uniform(0.32, 0.50))
     output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + tint * (soft_mask[..., None] * alpha)
 
     return output.astype(np.uint8), mask, {
@@ -215,9 +265,9 @@ def generate_rough(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndar
     height, width = image.shape[:2]
     center_x = int(rng.integers(width * 0.2, width * 0.8))
     center_y = int(rng.integers(height * 0.2, height * 0.8))
-    radius_x = float(rng.uniform(width * 0.05, width * 0.12))
-    radius_y = float(rng.uniform(height * 0.05, height * 0.13))
-    point_count = int(rng.integers(8, 14))
+    radius_x = float(rng.uniform(width * 0.07, width * 0.15))
+    radius_y = float(rng.uniform(height * 0.07, height * 0.16))
+    point_count = int(rng.integers(10, 16))
 
     points: list[tuple[int, int]] = []
     for index in range(point_count):
@@ -231,11 +281,14 @@ def generate_rough(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndar
     mask = (soft_mask > 0.18).astype(np.uint8)
 
     output = image.astype(np.float32).copy()
-    noise = rng.normal(0, float(rng.uniform(18, 34)), size=image.shape).astype(np.float32)
-    contrast = float(rng.uniform(1.25, 1.55))
+    noise = rng.normal(0, float(rng.uniform(22, 42)), size=image.shape).astype(np.float32)
+    contrast = float(rng.uniform(1.35, 1.75))
+    brightness_shift = float(rng.uniform(14, 36))
     local_mean = output.mean(axis=2, keepdims=True)
-    rough_region = (output - local_mean) * contrast + local_mean + noise
-    output = output * (1 - soft_mask[..., None]) + rough_region * soft_mask[..., None]
+    rough_region = (output - local_mean) * contrast + local_mean + noise + brightness_shift
+    desaturated = rough_region.mean(axis=2, keepdims=True)
+    rough_region = rough_region * 0.55 + desaturated * 0.45
+    output = output * (1 - soft_mask[..., None] * 0.9) + rough_region * (soft_mask[..., None] * 0.9)
 
     return np.clip(output, 0, 255).astype(np.uint8), mask, {
         "center": [center_x, center_y],
@@ -243,6 +296,7 @@ def generate_rough(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndar
         "radius_y": radius_y,
         "point_count": point_count,
         "contrast": contrast,
+        "brightness_shift": brightness_shift,
     }
 
 
@@ -279,6 +333,63 @@ def save_preview(rows: list[dict[str, object]], output_path: Path) -> None:
         for col_index, (panel, title) in enumerate(zip(panels, titles)):
             axes_array[row_index, col_index].imshow(panel, cmap="gray" if panel.ndim == 2 else None)
             axes_array[row_index, col_index].set_title(title, fontsize=10)
+            axes_array[row_index, col_index].axis("off")
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=160)
+    plt.close(fig)
+
+
+def save_real_vs_traditional_preview(rows: list[dict[str, object]], data_root: Path, category: str, output_path: Path) -> None:
+    selected: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for row in rows:
+        defect_type = str(row["defect_type"])
+        if defect_type not in seen:
+            selected.append(row)
+            seen.add(defect_type)
+        if len(selected) == len(DEFECT_TYPES):
+            break
+
+    fig, axes = plt.subplots(len(selected), 6, figsize=(18, 3.2 * len(selected)))
+    axes_array = np.array(axes).reshape(len(selected), 6)
+    category_root = data_root / category
+
+    for row_index, row in enumerate(selected):
+        defect_type = str(row["defect_type"])
+        real_image_path = category_root / "test" / defect_type / "000.png"
+        real_mask_path = category_root / "ground_truth" / defect_type / "000_mask.png"
+        synthetic_image_path = Path(str(row["output_image"]))
+        synthetic_mask_path = Path(str(row["output_mask"]))
+
+        if not real_image_path.exists() or not real_mask_path.exists():
+            continue
+
+        real_image = read_rgb(real_image_path)
+        real_mask = (np.array(Image.open(real_mask_path).convert("L")) > 0).astype(np.uint8)
+        synthetic_image = read_rgb(synthetic_image_path)
+        synthetic_mask = (np.array(Image.open(synthetic_mask_path).convert("L")) > 0).astype(np.uint8)
+
+        panels = [
+            real_image,
+            real_mask * 255,
+            overlay_mask(real_image, real_mask),
+            synthetic_image,
+            synthetic_mask * 255,
+            overlay_mask(synthetic_image, synthetic_mask),
+        ]
+        titles = [
+            f"real {defect_type}",
+            "real mask",
+            "real overlay",
+            f"traditional {defect_type}",
+            "traditional mask",
+            "traditional overlay",
+        ]
+        for col_index, (panel, title) in enumerate(zip(panels, titles)):
+            axes_array[row_index, col_index].imshow(panel, cmap="gray" if panel.ndim == 2 else None)
+            axes_array[row_index, col_index].set_title(title, fontsize=9)
             axes_array[row_index, col_index].axis("off")
 
     fig.tight_layout()
@@ -380,6 +491,7 @@ def main() -> None:
 
     write_csv(rows, output_root / "summary.csv")
     save_preview(rows, output_root / "preview.png")
+    save_real_vs_traditional_preview(rows, args.data_root, args.category, output_root / "real_vs_traditional_preview.png")
 
     print(f"Generated {len(rows)} traditional synthetic defects.")
     print(f"Output dir: {output_root.as_posix()}")

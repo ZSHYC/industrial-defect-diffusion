@@ -1,27 +1,27 @@
 {
-  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\221.png",
+  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\192.png",
   "defect_type": "gray_stroke",
   "output_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\images\\tile_trad_gray_stroke_000.png",
   "output_mask": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\masks\\tile_trad_gray_stroke_000_mask.png",
   "seed": 42,
   "generation_method": "traditional_rule_based",
   "parameters": {
-    "stroke_width": 16,
+    "stroke_width": 53,
     "points": [
       [
-        737,
-        514
+        701,
+        237
       ],
       [
-        668,
-        526
+        747,
+        145
       ],
       [
-        591,
-        595
+        770,
+        70
       ]
     ],
-    "gray_value": 109.53962454392624,
-    "alpha": 0.43188592874863674
+    "gray_value": 40.590736438158274,
+    "alpha": 0.7299117730254615
   }
 }
