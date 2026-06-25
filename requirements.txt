@@ -3,4 +3,10 @@ pillow
 matplotlib
 pandas
 tqdm
-
+torch
+torchvision
+diffusers
+transformers
+accelerate
+safetensors
+huggingface_hub

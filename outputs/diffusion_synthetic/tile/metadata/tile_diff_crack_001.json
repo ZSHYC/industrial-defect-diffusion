@@ -1,0 +1,20 @@
+{
+  "source_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\train\\good\\148.png",
+  "source_mask": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\masks\\tile_trad_crack_001_mask.png",
+  "traditional_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\traditional_synthetic\\tile\\images\\tile_trad_crack_001.png",
+  "conditioning_image": "traditional",
+  "defect_type": "crack",
+  "prompt": "a realistic long thin dark crack defect on industrial ceramic tile surface, inspection image, natural texture",
+  "negative_prompt": "cartoon, painting, text, watermark, logo, unrealistic, oversaturated, blurry, distorted, object, people",
+  "model_id": "stable-diffusion-v1-5/stable-diffusion-inpainting",
+  "variant": "fp16",
+  "use_safetensors": true,
+  "seed": 43,
+  "num_inference_steps": 30,
+  "guidance_scale": 7.5,
+  "strength": 0.35,
+  "image_size": 512,
+  "device": "cuda",
+  "output_image": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\diffusion_synthetic\\tile\\images\\tile_diff_crack_001.png",
+  "output_mask": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\diffusion_synthetic\\tile\\masks\\tile_diff_crack_001_mask.png"
+}
