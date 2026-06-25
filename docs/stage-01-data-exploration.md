@@ -46,7 +46,6 @@ ground_truth/*
 ```
 
 5. 统计 `tile` 类别中的正常图、异常图和 mask 数量。
-
 6. 编写并运行数据探索脚本，生成：
 
 ```text
@@ -139,10 +138,9 @@ defect_area_ratio_boxplot.png
 
 本阶段没有遇到严重阻塞问题。
 
-注意点有两个：
+注意点有个：
 
 1. Windows 终端里中文路径显示有编码乱码，但不影响实际文件读写。
-2. 当前系统 Python 是 3.13，不适合作为后续深度学习主环境，因此后面需要单独创建 conda 环境。
 
 ## 7. 下一步计划
 
@@ -158,4 +156,3 @@ defect_area_ratio_boxplot.png
 2. 它可以快速产出第一批 synthetic defects。
 3. 它是 Diffusion 缺陷生成的重要对照组。
 4. 没有传统对照组，后面很难证明 Diffusion 的价值。
-
