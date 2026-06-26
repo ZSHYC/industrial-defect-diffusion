@@ -130,7 +130,8 @@ conda activate industrial-defect-diffusion
 第 3 阶段：Diffusion Inpainting 缺陷生成
 第 4 阶段：异常检测 baseline
 第 5 阶段：分割训练与实验评估
-第 6 阶段：项目报告、README、面试表达整理
+第 6 阶段：扩大生成数据、质量筛选与监督分割再验证
+第 7 阶段：项目报告、README、面试表达整理
 ```
 
 重要原则：
@@ -155,6 +156,7 @@ conda activate industrial-defect-diffusion
 - [第 3 阶段：Diffusion Inpainting 缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-03-diffusion-generation.md)
 - [第 4 阶段：PatchCore 风格无监督异常检测 Baseline](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-04-patchcore-baseline.md)
 - [第 5 阶段：U-Net 监督分割训练与生成数据增强对比](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-05-unet-segmentation.md)
+- [第 6 阶段：扩大生成数据、质量筛选与监督分割再验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-06-expanded-synthesis-and-filtering.md)
 
 后续阶段文档将继续放在：
 
@@ -269,6 +271,51 @@ comparison_preview.png
 traditional/metrics.json
 diffusion/metrics.json
 combined/metrics.json
+```
+
+### 第 6 阶段扩大生成数据与质量筛选
+
+扩大传统规则伪缺陷：
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/02_generate_traditional_defects.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --samples-per-type 20 --seed 43 --output-dir outputs/expanded_synthetic/traditional
+```
+
+扩大 Diffusion Inpainting 伪缺陷：
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/03_generate_diffusion_defects.py --category tile --traditional-summary outputs/expanded_synthetic/traditional/tile/summary.csv --samples-per-type 10 --num-inference-steps 30 --seed 43 --local-files-only --output-dir outputs/expanded_synthetic/diffusion
+```
+
+质量筛选：
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/06_filter_synthetic_quality.py --traditional-summary outputs/expanded_synthetic/traditional/tile/summary.csv --diffusion-summary outputs/expanded_synthetic/diffusion/tile/summary.csv --output-dir outputs/quality_filter/tile
+```
+
+扩大数据重新训练：
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --image-size 256 --epochs 30 --batch-size 4 --seed 43 --traditional-summary outputs/expanded_synthetic/traditional/tile/summary.csv --diffusion-summary outputs/expanded_synthetic/diffusion/tile/summary.csv --output-dir outputs/training/unet_segmentation_expanded
+```
+
+第 6 阶段输出目录：
+
+```text
+outputs/expanded_synthetic/traditional/tile
+outputs/expanded_synthetic/diffusion/tile
+outputs/quality_filter/tile
+outputs/training/unet_segmentation_expanded/tile
+outputs/training/unet_segmentation_filtered/tile
+```
+
+第 6 阶段关键对比结果：
+
+```text
+expanded traditional: Pixel F1 = 0.5657
+expanded diffusion: Pixel F1 = 0.6847
+expanded combined: Pixel F1 = 0.7667
+filtered combined: Pixel F1 = 0.7667
 ```
 
 ---

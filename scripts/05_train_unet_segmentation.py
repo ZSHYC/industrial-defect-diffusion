@@ -21,6 +21,11 @@ from torchvision import transforms
 DEFECT_TYPES = ["crack", "glue_strip", "gray_stroke", "oil", "rough"]
 TEST_TYPES = ["good", *DEFECT_TYPES]
 EXPERIMENTS = ["traditional", "diffusion", "combined"]
+EXPERIMENT_SEED_OFFSETS = {
+    "traditional": 0,
+    "diffusion": 1000,
+    "combined": 2000,
+}
 
 
 @dataclass(frozen=True)
@@ -122,6 +127,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--diffusion-summary", type=Path, default=Path("outputs") / "diffusion_synthetic" / "tile" / "summary.csv")
     parser.add_argument("--output-dir", type=Path, default=Path("outputs") / "training" / "unet_segmentation")
     parser.add_argument("--keep-existing", action="store_true", help="Do not clear previous U-Net outputs.")
+    parser.add_argument(
+        "--experiments",
+        nargs="+",
+        choices=EXPERIMENTS,
+        default=EXPERIMENTS,
+        help="Subset of experiments to run.",
+    )
     return parser.parse_args()
 
 
@@ -278,8 +290,10 @@ def train_model(
     args: argparse.Namespace,
     output_root: Path,
 ) -> tuple[LightUNet, list[float]]:
+    experiment_seed = args.seed + EXPERIMENT_SEED_OFFSETS[experiment]
+    seed_everything(experiment_seed)
     dataset = SyntheticSegmentationDataset(samples, args.image_size)
-    generator = torch.Generator().manual_seed(args.seed)
+    generator = torch.Generator().manual_seed(experiment_seed)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, generator=generator)
     model = LightUNet().to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
@@ -487,9 +501,9 @@ def save_preview(experiment: str, test_rows_path: Path, output_path: Path, image
     plt.close(fig)
 
 
-def save_comparison_preview(output_root: Path, output_path: Path) -> None:
+def save_comparison_preview(output_root: Path, output_path: Path, experiments: list[str]) -> None:
     previews = []
-    for experiment in EXPERIMENTS:
+    for experiment in experiments:
         preview_path = output_root / experiment / "preview.png"
         if preview_path.exists():
             previews.append((experiment, Image.open(preview_path).convert("RGB")))
@@ -531,7 +545,8 @@ def main() -> None:
         "combined": traditional_samples + diffusion_samples,
     }
     comparison_rows: list[dict[str, object]] = []
-    for experiment, samples in experiment_samples.items():
+    for experiment in args.experiments:
+        samples = experiment_samples[experiment]
         experiment_root = output_root / experiment
         experiment_root.mkdir(parents=True, exist_ok=True)
         model, losses = train_model(experiment, samples, args, output_root)
@@ -556,10 +571,10 @@ def main() -> None:
         )
 
     write_comparison_summary(comparison_rows, output_root / "comparison_summary.csv")
-    save_comparison_preview(output_root, output_root / "comparison_preview.png")
+    save_comparison_preview(output_root, output_root / "comparison_preview.png", args.experiments)
 
     print("U-Net segmentation experiments finished.")
-    print(f"Output dir: {(Path('outputs') / 'training' / 'unet_segmentation' / args.category).as_posix()}")
+    print(f"Output dir: {output_root.as_posix()}")
     for row in comparison_rows:
         print(
             f"{row['experiment']}: pixel_f1={float(row['pixel_f1']):.4f}, "
