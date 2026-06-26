@@ -154,6 +154,7 @@ conda activate industrial-defect-diffusion
 - [第 2 阶段：传统规则伪缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-02-traditional-synthesis.md)
 - [第 3 阶段：Diffusion Inpainting 缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-03-diffusion-generation.md)
 - [第 4 阶段：PatchCore 风格无监督异常检测 Baseline](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-04-patchcore-baseline.md)
+- [第 5 阶段：U-Net 监督分割训练与生成数据增强对比](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-05-unet-segmentation.md)
 
 后续阶段文档将继续放在：
 
@@ -238,6 +239,36 @@ preview.png
 image_scores.csv
 metrics.json
 summary.md
+```
+
+### U-Net 监督分割训练脚本
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --image-size 256 --epochs 30 --batch-size 4 --seed 42
+```
+
+输出目录：
+
+```text
+outputs/training/unet_segmentation/tile
+```
+
+默认运行三组实验：
+
+```text
+traditional：只用传统规则伪缺陷训练
+diffusion：只用 Diffusion Inpainting 伪缺陷训练
+combined：传统伪缺陷 + Diffusion 伪缺陷一起训练
+```
+
+关键输出：
+
+```text
+comparison_summary.csv
+comparison_preview.png
+traditional/metrics.json
+diffusion/metrics.json
+combined/metrics.json
 ```
 
 ---
