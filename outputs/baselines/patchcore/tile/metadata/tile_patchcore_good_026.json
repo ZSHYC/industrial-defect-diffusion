@@ -1,0 +1,19 @@
+{
+  "image_path": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\test\\good\\026.png",
+  "mask_path": null,
+  "defect_type": "good",
+  "label": 0,
+  "image_score": 0.6812671422958374,
+  "anomaly_map": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\baselines\\patchcore\\tile\\anomaly_maps\\tile_patchcore_good_026.png",
+  "overlay": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\baselines\\patchcore\\tile\\overlays\\tile_patchcore_good_026.png",
+  "seed": 42,
+  "backbone": "resnet18",
+  "feature_layers": [
+    "layer2",
+    "layer3"
+  ],
+  "image_size": 224,
+  "max_memory_patches": 10000,
+  "memory_patches_before_subsample": 180320,
+  "memory_patches_used": 10000
+}

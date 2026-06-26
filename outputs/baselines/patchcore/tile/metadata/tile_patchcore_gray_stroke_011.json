@@ -1,0 +1,19 @@
+{
+  "image_path": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\test\\gray_stroke\\011.png",
+  "mask_path": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\ground_truth\\gray_stroke\\011_mask.png",
+  "defect_type": "gray_stroke",
+  "label": 1,
+  "image_score": 0.837736964225769,
+  "anomaly_map": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\baselines\\patchcore\\tile\\anomaly_maps\\tile_patchcore_gray_stroke_011.png",
+  "overlay": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\baselines\\patchcore\\tile\\overlays\\tile_patchcore_gray_stroke_011.png",
+  "seed": 42,
+  "backbone": "resnet18",
+  "feature_layers": [
+    "layer2",
+    "layer3"
+  ],
+  "image_size": 224,
+  "max_memory_patches": 10000,
+  "memory_patches_before_subsample": 180320,
+  "memory_patches_used": 10000
+}

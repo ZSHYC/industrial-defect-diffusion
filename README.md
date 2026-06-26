@@ -153,6 +153,7 @@ conda activate industrial-defect-diffusion
 - [第 1 阶段：MVTec AD 数据探索与校验](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-01-data-exploration.md)
 - [第 2 阶段：传统规则伪缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-02-traditional-synthesis.md)
 - [第 3 阶段：Diffusion Inpainting 缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-03-diffusion-generation.md)
+- [第 4 阶段：PatchCore 风格无监督异常检测 Baseline](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-04-patchcore-baseline.md)
 
 后续阶段文档将继续放在：
 
@@ -216,6 +217,27 @@ outputs/diffusion_synthetic/tile
 preview.png
 traditional_vs_diffusion_preview.png
 summary.csv
+```
+
+### PatchCore 风格异常检测 baseline 脚本
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/04_patchcore_baseline.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --image-size 224 --seed 42
+```
+
+输出目录：
+
+```text
+outputs/baselines/patchcore/tile
+```
+
+关键输出：
+
+```text
+preview.png
+image_scores.csv
+metrics.json
+summary.md
 ```
 
 ---

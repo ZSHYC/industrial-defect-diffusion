@@ -1,0 +1,19 @@
+{
+  "image_path": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\test\\rough\\007.png",
+  "mask_path": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\MVTec_AD\\tile\\ground_truth\\rough\\007_mask.png",
+  "defect_type": "rough",
+  "label": 1,
+  "image_score": 0.8360798358917236,
+  "anomaly_map": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\baselines\\patchcore\\tile\\anomaly_maps\\tile_patchcore_rough_007.png",
+  "overlay": "C:\\Users\\zsh\\Desktop\\昂坤视觉\\industrial-defect-diffusion\\outputs\\baselines\\patchcore\\tile\\overlays\\tile_patchcore_rough_007.png",
+  "seed": 42,
+  "backbone": "resnet18",
+  "feature_layers": [
+    "layer2",
+    "layer3"
+  ],
+  "image_size": 224,
+  "max_memory_patches": 10000,
+  "memory_patches_before_subsample": 180320,
+  "memory_patches_used": 10000
+}

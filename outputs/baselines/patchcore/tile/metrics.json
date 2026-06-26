@@ -1,0 +1,29 @@
+{
+  "category": "tile",
+  "method": "patchcore_style_resnet18",
+  "train_images": 230,
+  "test_images": 117,
+  "image_size": 224,
+  "seed": 42,
+  "device": "cuda",
+  "backbone": "resnet18",
+  "feature_layers": [
+    "layer2",
+    "layer3"
+  ],
+  "memory_patches_before_subsample": 180320,
+  "memory_patches_used": 10000,
+  "image_auroc": 0.9942279942279942,
+  "pixel_auroc": 0.9243951216785371,
+  "image_threshold": 0.7524176812171937,
+  "pixel_threshold": 0.6681621170043945,
+  "threshold_method": "best_f1_on_test_for_stage_diagnostics",
+  "image_precision": 0.9879518072289156,
+  "image_recall": 0.9761904761904762,
+  "image_f1": 0.9820359281437125,
+  "pixel_precision": 0.44574581494483095,
+  "pixel_recall": 0.7602109121368895,
+  "pixel_f1": 0.5619784275019821,
+  "pixel_dice": 0.5619784275019821,
+  "pixel_iou": 0.39079971973282523
+}
