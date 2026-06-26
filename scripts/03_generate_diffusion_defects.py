@@ -18,7 +18,7 @@ DEFECT_TYPES = ["crack", "glue_strip", "gray_stroke", "oil", "rough"]
 PROMPTS = {
     "crack": "a realistic long thin dark crack defect on industrial ceramic tile surface, inspection image, natural texture",
     "glue_strip": "a realistic pale translucent glue strip defect on industrial ceramic tile surface, inspection image, natural texture",
-    "gray_stroke": "a realistic dark gray stroke smudge defect on industrial ceramic tile surface, inspection image, visible local defect",
+    "gray_stroke": "a realistic dark gray black irregular smudge stain defect on industrial ceramic tile surface, rough local contamination, inspection image, visible defect region",
     "oil": "a realistic yellow brown translucent oil stain defect on industrial ceramic tile surface, inspection image, visible contamination",
     "rough": "a realistic rough damaged texture defect on industrial ceramic tile surface, inspection image, visible local abnormal area",
 }
@@ -63,12 +63,12 @@ def write_csv(rows: list[dict[str, object]], output_path: Path) -> None:
         writer.writerows(rows)
 
 
-def load_traditional_rows(summary_path: Path, samples_per_type: int) -> list[dict[str, str]]:
+def load_traditional_rows(summary_path: Path, samples_per_type: int, defect_types: list[str]) -> list[dict[str, str]]:
     with summary_path.open("r", encoding="utf-8", newline="") as file:
         rows = list(csv.DictReader(file))
 
     selected: list[dict[str, str]] = []
-    for defect_type in DEFECT_TYPES:
+    for defect_type in defect_types:
         type_rows = [row for row in rows if row["defect_type"] == defect_type]
         if len(type_rows) < samples_per_type:
             raise ValueError(f"Need {samples_per_type} masks for {defect_type}, found {len(type_rows)}.")
@@ -185,6 +185,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate diffusion inpainting defects using traditional masks.")
     parser.add_argument("--category", default="tile")
     parser.add_argument("--samples-per-type", type=int, default=3)
+    parser.add_argument(
+        "--defect-types",
+        nargs="+",
+        choices=DEFECT_TYPES,
+        default=DEFECT_TYPES,
+        help="Defect types to generate.",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--image-size", type=int, default=512)
     parser.add_argument("--num-inference-steps", type=int, default=30)
@@ -236,7 +243,7 @@ def main() -> None:
     for folder in [image_dir, mask_dir, metadata_dir]:
         folder.mkdir(parents=True, exist_ok=True)
 
-    selected_rows = load_traditional_rows(args.traditional_summary, args.samples_per_type)
+    selected_rows = load_traditional_rows(args.traditional_summary, args.samples_per_type, args.defect_types)
     pipe = build_pipeline(
         model_id=args.model_id,
         device=args.device,
@@ -325,7 +332,7 @@ def main() -> None:
 
     print(f"Generated {len(result_rows)} diffusion synthetic defects.")
     print(f"Output dir: {output_root.as_posix()}")
-    for defect_type in DEFECT_TYPES:
+    for defect_type in args.defect_types:
         count = sum(1 for row in result_rows if row["defect_type"] == defect_type)
         print(f"  {defect_type}: {count}")
 

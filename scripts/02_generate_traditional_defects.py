@@ -179,37 +179,86 @@ def generate_glue_strip(image: np.ndarray, rng: np.random.Generator) -> tuple[np
 
 def generate_gray_stroke(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
     height, width = image.shape[:2]
-    stroke_width = int(rng.integers(30, 58))
-    points = random_polyline(rng, width, height, int(rng.integers(2, 4)))
+    target_area_ratio = float(rng.uniform(0.022, 0.072))
+    fill_factor = float(rng.uniform(0.42, 0.68))
+    aspect = float(rng.choice([rng.uniform(0.45, 0.85), rng.uniform(0.85, 1.65), rng.uniform(1.7, 4.2)]))
+    bbox_area = target_area_ratio * width * height / fill_factor
+    axis_y = float(np.sqrt(bbox_area / max(aspect, 0.1)) * 0.5)
+    axis_x = axis_y * aspect
+    axis_x = float(np.clip(axis_x, width * 0.08, width * 0.34))
+    axis_y = float(np.clip(axis_y, height * 0.08, height * 0.34))
+    angle = float(rng.uniform(0, np.pi))
+    center_x = float(rng.uniform(width * 0.15, width * 0.85))
+    center_y = float(rng.uniform(height * 0.15, height * 0.85))
+    if rng.random() < 0.22:
+        center_x = float(rng.choice([rng.uniform(-width * 0.06, width * 0.12), rng.uniform(width * 0.88, width * 1.06)]))
+    if rng.random() < 0.22:
+        center_y = float(rng.choice([rng.uniform(-height * 0.06, height * 0.12), rng.uniform(height * 0.88, height * 1.06)]))
 
-    mask_img = Image.new("L", (width, height), 0)
-    draw = ImageDraw.Draw(mask_img)
-    draw.line(points, fill=255, width=stroke_width, joint="curve")
+    yy, xx = np.mgrid[0:height, 0:width].astype(np.float32)
+    dx = xx - center_x
+    dy = yy - center_y
+    cos_a = np.cos(angle)
+    sin_a = np.sin(angle)
+    u = (dx * cos_a + dy * sin_a) / axis_x
+    v = (-dx * sin_a + dy * cos_a) / axis_y
+    ellipse_field = np.clip(1.0 - (u * u + v * v), 0.0, 1.0)
 
-    for point in points:
-        radius_x = int(rng.integers(stroke_width // 2, stroke_width))
-        radius_y = int(rng.integers(stroke_width // 3, max(stroke_width // 3 + 1, stroke_width * 2 // 3)))
-        draw.ellipse(
-            [
-                point[0] - radius_x,
-                point[1] - radius_y,
-                point[0] + radius_x,
-                point[1] + radius_y,
-            ],
-            fill=255,
-        )
+    noise_size = (max(10, width // 18), max(10, height // 18))
+    coarse = Image.fromarray((rng.random((noise_size[1], noise_size[0])) * 255).astype(np.uint8), mode="L")
+    coarse = coarse.resize((width, height), Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(radius=4))
+    low_noise = np.array(coarse, dtype=np.float32) / 255.0
+    fine = rng.random((height, width)).astype(np.float32)
+    field = ellipse_field * (0.80 + 0.42 * low_noise) + 0.10 * low_noise + 0.04 * fine
 
-    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(3, 7)))), dtype=np.float32) / 255.0
-    mask = (soft_mask > 0.12).astype(np.uint8)
+    if rng.random() < 0.65:
+        lobe_count = int(rng.integers(1, 4))
+        for _ in range(lobe_count):
+            offset_u = float(rng.normal(0, 0.38))
+            offset_v = float(rng.normal(0, 0.38))
+            lobe_axis_x = float(rng.uniform(0.28, 0.58))
+            lobe_axis_y = float(rng.uniform(0.24, 0.55))
+            lobe = np.clip(1.0 - ((u - offset_u) / lobe_axis_x) ** 2 - ((v - offset_v) / lobe_axis_y) ** 2, 0.0, 1.0)
+            field = np.maximum(field, lobe * float(rng.uniform(0.72, 0.98)))
 
-    gray_value = float(rng.uniform(35, 75))
-    alpha = float(rng.uniform(0.62, 0.85))
-    gray = np.full_like(image.astype(np.float32), gray_value)
-    output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + gray * (soft_mask[..., None] * alpha)
+    threshold = float(rng.uniform(0.36, 0.48))
+    mask = (field > threshold).astype(np.uint8)
+    for threshold in np.linspace(0.30, 0.58, 15):
+        candidate = (field > threshold).astype(np.uint8)
+        area_ratio = float(candidate.mean())
+        if 0.018 <= area_ratio <= 0.080:
+            mask = candidate
+            break
 
-    return output.astype(np.uint8), mask, {
-        "stroke_width": stroke_width,
-        "points": points,
+    soft_mask = np.array(
+        Image.fromarray((mask * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(2.0, 4.0)))),
+        dtype=np.float32,
+    ) / 255.0
+    soft_mask = np.clip(soft_mask * (0.82 + 0.30 * low_noise), 0.0, 1.0)
+
+    gray_value = float(rng.uniform(42, 70))
+    alpha = float(rng.uniform(0.58, 0.78))
+    image_float = image.astype(np.float32)
+    local_noise = rng.normal(0, float(rng.uniform(6, 15)), size=(height, width, 1)).astype(np.float32)
+    speckle = rng.random((height, width, 1)).astype(np.float32)
+    dark_speckles = (speckle < float(rng.uniform(0.08, 0.18))).astype(np.float32) * float(rng.uniform(8, 24))
+    light_scratches = (speckle > float(rng.uniform(0.92, 0.97))).astype(np.float32) * float(rng.uniform(6, 16))
+    gray_texture = np.full_like(image_float, gray_value) + local_noise - dark_speckles + light_scratches
+    gray_texture = np.clip(gray_texture, 25, 105)
+    output = image_float * (1 - soft_mask[..., None] * alpha) + gray_texture * (soft_mask[..., None] * alpha)
+
+    shadow_alpha = float(rng.uniform(0.03, 0.09))
+    output = output * (1 - soft_mask[..., None] * shadow_alpha)
+
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "target_area_ratio": target_area_ratio,
+        "actual_area_ratio": float(mask.mean()),
+        "axis_x": axis_x,
+        "axis_y": axis_y,
+        "aspect": aspect,
+        "fill_factor": fill_factor,
+        "center": [center_x, center_y],
+        "angle": angle,
         "gray_value": gray_value,
         "alpha": alpha,
     }
@@ -423,6 +472,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples-per-type", type=int, default=5, help="Number of samples per defect type.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
     parser.add_argument(
+        "--defect-types",
+        nargs="+",
+        choices=DEFECT_TYPES,
+        default=DEFECT_TYPES,
+        help="Defect types to generate.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("outputs") / "traditional_synthetic",
@@ -452,7 +508,7 @@ def main() -> None:
     rng = np.random.default_rng(args.seed)
     rows: list[dict[str, object]] = []
 
-    for defect_type in DEFECT_TYPES:
+    for defect_type in args.defect_types:
         generator = GENERATORS[defect_type]
         for index in range(args.samples_per_type):
             source_path = normal_images[int(rng.integers(0, len(normal_images)))]
@@ -495,7 +551,7 @@ def main() -> None:
 
     print(f"Generated {len(rows)} traditional synthetic defects.")
     print(f"Output dir: {output_root.as_posix()}")
-    for defect_type in DEFECT_TYPES:
+    for defect_type in args.defect_types:
         count = sum(1 for row in rows if row["defect_type"] == defect_type)
         print(f"  {defect_type}: {count}")
 

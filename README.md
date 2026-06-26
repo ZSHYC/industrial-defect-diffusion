@@ -318,6 +318,20 @@ expanded combined: Pixel F1 = 0.7667
 filtered combined: Pixel F1 = 0.7667
 ```
 
+第 6 阶段发现 `gray_stroke` 生成质量是主要瓶颈后，已进行专项修复：
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/02_generate_traditional_defects.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --samples-per-type 20 --seed 104 --defect-types gray_stroke --output-dir outputs/gray_stroke_fix/traditional
+```
+
+修复后重新训练结果：
+
+```text
+gray_stroke fixed combined: Pixel F1 = 0.8573
+gray_stroke fixed combined: Image F1 = 0.9492
+gray_stroke class Dice = 0.8409
+```
+
 ---
 
 ## 9. Git 约定
