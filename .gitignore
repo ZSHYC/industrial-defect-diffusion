@@ -83,3 +83,8 @@ data/
 datasets/
 downloads/
 
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.json
