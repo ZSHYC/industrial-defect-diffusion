@@ -480,30 +480,116 @@ def generate_wood_liquid(image: np.ndarray, rng: np.random.Generator) -> tuple[n
 
 def generate_wood_scratch(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
     height, width = image.shape[:2]
-    line_count = int(rng.integers(1, 4))
     mask_img = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(mask_img)
+    mode = str(rng.choice(["long_single", "clustered_lines", "broad_abrasion"], p=[0.35, 0.40, 0.25]))
     scratches: list[list[tuple[int, int]]] = []
-    for _ in range(line_count):
-        point_count = int(rng.integers(3, 6))
-        points = random_polyline(rng, width, height, point_count)
-        line_width = int(rng.integers(2, 6))
+    widths: list[int] = []
+
+    def make_long_points(length_scale: float, point_count: int, jitter_scale: float) -> list[tuple[int, int]]:
+        angle = float(rng.choice([rng.normal(0, 0.20), rng.normal(np.pi / 2, 0.20), rng.uniform(0, np.pi)]))
+        center = np.array([float(rng.uniform(width * 0.18, width * 0.82)), float(rng.uniform(height * 0.18, height * 0.82))])
+        direction = np.array([np.cos(angle), np.sin(angle)])
+        normal = np.array([-direction[1], direction[0]])
+        length = float(min(width, height) * length_scale)
+        points: list[tuple[int, int]] = []
+        for index in range(point_count):
+            t = index / max(point_count - 1, 1) - 0.5
+            base = center + direction * length * t
+            curve = normal * float(rng.normal(0, min(width, height) * jitter_scale))
+            point = base + curve
+            points.append((int(np.clip(point[0], 0, width - 1)), int(np.clip(point[1], 0, height - 1))))
+        return points
+
+    if mode == "long_single":
+        point_count = int(rng.integers(5, 9))
+        points = make_long_points(float(rng.uniform(0.78, 1.35)), point_count, 0.035)
+        line_width = int(rng.integers(18, 40))
         draw.line(points, fill=255, width=line_width, joint="curve")
         scratches.append(points)
-    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.4, 1.2)))), dtype=np.float32) / 255.0
+        widths.append(line_width)
+        if rng.random() < 0.45:
+            side_points = make_long_points(float(rng.uniform(0.35, 0.70)), int(rng.integers(3, 6)), 0.025)
+            side_width = int(rng.integers(8, 18))
+            draw.line(side_points, fill=210, width=side_width, joint="curve")
+            scratches.append(side_points)
+            widths.append(side_width)
+    elif mode == "clustered_lines":
+        base_angle = float(rng.choice([rng.normal(0, 0.18), rng.normal(np.pi / 2, 0.18), rng.uniform(0, np.pi)]))
+        direction = np.array([np.cos(base_angle), np.sin(base_angle)])
+        normal = np.array([-direction[1], direction[0]])
+        center = np.array([float(rng.uniform(width * 0.18, width * 0.82)), float(rng.uniform(height * 0.18, height * 0.82))])
+        line_count = int(rng.integers(4, 10))
+        for line_index in range(line_count):
+            offset = normal * float((line_index - (line_count - 1) / 2) * rng.uniform(9, 20) + rng.normal(0, 8))
+            length = float(min(width, height) * rng.uniform(0.45, 1.10))
+            point_count = int(rng.integers(4, 8))
+            points = []
+            for index in range(point_count):
+                t = index / max(point_count - 1, 1) - 0.5
+                wobble = normal * float(rng.normal(0, min(width, height) * 0.018))
+                point = center + offset + direction * length * t + wobble
+                points.append((int(np.clip(point[0], 0, width - 1)), int(np.clip(point[1], 0, height - 1))))
+            line_width = int(rng.integers(7, 18))
+            draw.line(points, fill=255, width=line_width, joint="curve")
+            scratches.append(points)
+            widths.append(line_width)
+    else:
+        angle = float(rng.choice([rng.normal(0, 0.25), rng.normal(np.pi / 2, 0.25), rng.uniform(0, np.pi)]))
+        center_x = float(rng.uniform(width * 0.20, width * 0.80))
+        center_y = float(rng.uniform(height * 0.20, height * 0.80))
+        axis_long = float(rng.uniform(min(width, height) * 0.30, min(width, height) * 0.62))
+        axis_short = float(rng.uniform(min(width, height) * 0.035, min(width, height) * 0.095))
+        point_count = int(rng.integers(18, 28))
+        points = []
+        for index in range(point_count):
+            theta = 2 * np.pi * index / point_count
+            jitter = float(rng.uniform(0.70, 1.35))
+            x = np.cos(theta) * axis_long * jitter
+            y = np.sin(theta) * axis_short * jitter
+            rot_x = x * np.cos(angle) - y * np.sin(angle) + center_x
+            rot_y = x * np.sin(angle) + y * np.cos(angle) + center_y
+            points.append((int(np.clip(rot_x, 0, width - 1)), int(np.clip(rot_y, 0, height - 1))))
+        draw.polygon(points, fill=255)
+        for _ in range(int(rng.integers(5, 12))):
+            line = make_long_points(float(rng.uniform(0.35, 0.95)), int(rng.integers(3, 6)), 0.018)
+            line_width = int(rng.integers(4, 12))
+            draw.line(line, fill=255, width=line_width, joint="curve")
+            scratches.append(line)
+            widths.append(line_width)
+        scratches.append(points)
+        widths.append(int(axis_short * 2))
+
+    mask_arr = np.array(mask_img)
+    if float((mask_arr > 0).mean()) < 0.012:
+        mask_img = mask_img.filter(ImageFilter.MaxFilter(7))
+        mask_arr = np.array(mask_img)
+    if float((mask_arr > 0).mean()) > 0.18:
+        mask_img = mask_img.filter(ImageFilter.MinFilter(5))
+        mask_arr = np.array(mask_img)
+
+    blur_radius = float(rng.uniform(1.2, 4.5 if mode == "broad_abrasion" else 2.8))
+    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=blur_radius)), dtype=np.float32) / 255.0
     mask = (np.array(mask_img) > 0).astype(np.uint8)
-    scratch_tone = np.array([
-        float(rng.uniform(160, 220)),
-        float(rng.uniform(120, 175)),
-        float(rng.uniform(70, 120)),
-    ])
-    alpha = float(rng.uniform(0.36, 0.62))
-    output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + scratch_tone * (soft_mask[..., None] * alpha)
+    image_float = image.astype(np.float32)
+    local_mean = image_float.mean(axis=2, keepdims=True)
+    bright_shift = float(rng.uniform(14, 34))
+    desaturated = image_float * float(rng.uniform(0.62, 0.82)) + local_mean * float(rng.uniform(0.18, 0.38))
+    scratch_texture = desaturated + bright_shift
+    scratch_texture += rng.normal(0, float(rng.uniform(3, 9)), size=image_float.shape).astype(np.float32)
+    alpha = float(rng.uniform(0.36, 0.66))
+    output = image_float * (1 - soft_mask[..., None] * alpha) + scratch_texture * (soft_mask[..., None] * alpha)
+    if rng.random() < 0.35:
+        shadow = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(4, 9)))), dtype=np.float32) / 255.0
+        output = output - shadow[..., None] * float(rng.uniform(2, 7))
     return np.clip(output, 0, 255).astype(np.uint8), mask, {
-        "line_count": line_count,
+        "mode": mode,
+        "line_count": len(scratches),
+        "line_widths": [int(value) for value in widths],
         "scratches": [[[int(x), int(y)] for x, y in points] for points in scratches],
-        "scratch_tone": scratch_tone.tolist(),
+        "bright_shift": bright_shift,
         "alpha": alpha,
+        "actual_area_ratio": float(mask.mean()),
     }
 
 

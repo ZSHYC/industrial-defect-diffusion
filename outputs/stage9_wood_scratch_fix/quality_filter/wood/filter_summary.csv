@@ -1,0 +1,11 @@
+synthetic_source,defect_type,accepted
+traditional,color,20
+traditional,combined,20
+traditional,hole,20
+traditional,liquid,19
+traditional,scratch,19
+diffusion,color,10
+diffusion,combined,10
+diffusion,hole,10
+diffusion,liquid,10
+diffusion,scratch,10

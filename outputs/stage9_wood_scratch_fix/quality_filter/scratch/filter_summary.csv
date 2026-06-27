@@ -1,0 +1,3 @@
+synthetic_source,defect_type,total,accepted,rejected,accept_rate,mean_mask_area_ratio,mean_inside_abs_diff,mean_outside_abs_diff
+traditional,scratch,20,19,1,0.95,0.045950460433959964,10.37637414932251,0.07688885144889354
+diffusion,scratch,10,10,0,1.0,0.04082984924316406,8.914459705352783,6.785490417480469

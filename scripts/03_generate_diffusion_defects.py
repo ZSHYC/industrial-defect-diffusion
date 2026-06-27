@@ -30,7 +30,7 @@ CATEGORY_PROMPTS = {
         "color": "a realistic dark color stain defect on industrial wood surface, natural grain texture, inspection image, visible local discoloration",
         "hole": "a realistic dark irregular hole defect on industrial wood surface, damaged wood grain, inspection image, visible local defect",
         "liquid": "a realistic translucent liquid stain defect on industrial wood surface, natural grain texture, inspection image, visible wet contamination",
-        "scratch": "a realistic thin scratch defect on industrial wood surface, shallow bright irregular scratch lines, natural grain texture, inspection image",
+        "scratch": "realistic long bright scratch marks and large shallow abrasion on industrial wood surface, follows natural wood grain texture, inspection image, visible wide scratched defect",
         "combined": "realistic combined defects on industrial wood surface, local stain and scratch damage, natural grain texture, inspection image",
     },
 }

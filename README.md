@@ -133,6 +133,7 @@ conda activate industrial-defect-diffusion
 第 6 阶段：扩大生成数据、质量筛选与监督分割再验证
 第 7 阶段：crack 专项改进与最终实验整理
 第 8 阶段：wood 类别泛化验证与复现实验包
+第 9 阶段：wood scratch 专项修复与跨类别误差分析
 ```
 
 重要原则：
@@ -160,6 +161,7 @@ conda activate industrial-defect-diffusion
 - [第 6 阶段：扩大生成数据、质量筛选与监督分割再验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-06-expanded-synthesis-and-filtering.md)
 - [第 7 阶段：crack 专项改进与最终实验整理](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-07-crack-improvement-and-final-analysis.md)
 - [第 8 阶段：wood 类别泛化验证与复现实验包](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-08-wood-generalization.md)
+- [第 9 阶段：wood scratch 专项修复与跨类别误差分析](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-09-wood-scratch-fix.md)
 
 后续阶段文档将继续放在：
 
@@ -473,6 +475,74 @@ wood combined:
 流程已经从 tile 迁移到 wood，说明项目不是单类别 hard-code demo。
 但 wood 像素级分割明显弱于 tile，尤其 scratch 类几乎失败。
 这说明跨类别迁移不仅要迁移代码流程，还要重新做每个类别的真实缺陷分布分析。
+```
+
+### 第 9 阶段 wood scratch 专项修复
+
+第 9 阶段针对第 8 阶段最弱的 `wood/scratch` 做专项修复。
+
+核心判断：
+
+```text
+真实 wood scratch mean area_ratio ~= 0.0744
+第 8 阶段 synthetic scratch mean area_ratio ~= 0.0020
+旧生成规则过细、过小、过局部，导致 scratch recall 几乎失败。
+```
+
+生成第 9 阶段 scratch-only traditional：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/02_generate_traditional_defects.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category wood --defect-types scratch --samples-per-type 20 --seed 404 --output-dir outputs/stage9_wood_scratch_fix/traditional
+```
+
+生成第 9 阶段 scratch-only diffusion：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/03_generate_diffusion_defects.py --category wood --defect-types scratch --traditional-summary outputs/stage9_wood_scratch_fix/traditional/wood/summary.csv --samples-per-type 10 --num-inference-steps 30 --seed 404 --local-files-only --output-dir outputs/stage9_wood_scratch_fix/diffusion
+```
+
+质量筛选、分布分析、合并训练数据：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/06_filter_synthetic_quality.py --traditional-summary outputs/stage9_wood_scratch_fix/traditional/wood/summary.csv --diffusion-summary outputs/stage9_wood_scratch_fix/diffusion/wood/summary.csv --output-dir outputs/stage9_wood_scratch_fix/quality_filter/scratch
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/09_analyze_wood_scratch_distribution.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --old-traditional-summary outputs/stage8_wood_synthetic/traditional/wood/summary.csv --old-diffusion-summary outputs/stage8_wood_synthetic/diffusion/wood/summary.csv --new-traditional-summary outputs/stage9_wood_scratch_fix/traditional/wood/summary.csv --new-diffusion-summary outputs/stage9_wood_scratch_fix/diffusion/wood/summary.csv --output-dir outputs/stage9_wood_scratch_fix/analysis
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/09_prepare_wood_scratch_fix_dataset.py --stage8-quality-dir outputs/stage8_wood_quality_filter/wood --stage9-scratch-quality-dir outputs/stage9_wood_scratch_fix/quality_filter/scratch --output-dir outputs/stage9_wood_scratch_fix/quality_filter/wood
+```
+
+第 9 阶段 U-Net combined 训练：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category wood --image-size 256 --epochs 30 --batch-size 4 --seed 404 --traditional-summary outputs/stage9_wood_scratch_fix/quality_filter/wood/accepted_traditional_summary.csv --diffusion-summary outputs/stage9_wood_scratch_fix/quality_filter/wood/accepted_diffusion_summary.csv --output-dir outputs/training/unet_segmentation_stage9_wood_scratch_fix --experiments combined
+```
+
+wood 第 8 / 第 9 阶段对比：
+
+```text
+stage8 wood combined:
+  Pixel F1 = 0.2651
+  Best Pixel F1 = 0.2901
+  Image F1 = 0.8947
+  scratch Dice = 0.0247
+  scratch Recall = 0.0146
+
+stage9 wood scratch fixed combined:
+  Pixel F1 = 0.3369
+  Best Pixel F1 = 0.3815
+  Image F1 = 0.9023
+  scratch Dice = 0.3405
+  scratch Recall = 0.4169
+```
+
+第 9 阶段结论：
+
+```text
+第 8 阶段证明流程可以迁移到 wood；第 9 阶段证明迁移后仍需要类别级误差分析和生成分布修复。
 ```
 
 ---
