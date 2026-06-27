@@ -135,6 +135,7 @@ conda activate industrial-defect-diffusion
 第 8 阶段：wood 类别泛化验证与复现实验包
 第 9 阶段：wood scratch 专项修复与跨类别误差分析
 第 10 阶段：leather 第三类别泛化验证
+第 11 阶段：leather precision / cut 专项修复
 ```
 
 重要原则：
@@ -164,6 +165,7 @@ conda activate industrial-defect-diffusion
 - [第 8 阶段：wood 类别泛化验证与复现实验包](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-08-wood-generalization.md)
 - [第 9 阶段：wood scratch 专项修复与跨类别误差分析](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-09-wood-scratch-fix.md)
 - [第 10 阶段：leather 第三类别泛化验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-10-leather-generalization.md)
+- [第 11 阶段：leather precision / cut 专项修复](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-11-leather-precision-cut-fix.md)
 
 后续阶段文档将继续放在：
 
@@ -617,6 +619,58 @@ leather combined:
 流程已经迁移到 tile、wood、leather 三个类别。
 leather 证明第三类别闭环可以跑通，但也暴露出小面积缺陷下 pixel precision 很低的问题。
 如果继续推进，下一步应优先做 leather precision / cut 专项修复，而不是继续盲目扩类别。
+```
+
+### 第 11 阶段 leather precision / cut 专项修复
+
+第 11 阶段修复第 10 阶段 `leather` 的过分割问题：
+
+```text
+stage10 good 图 image_score 均值约 0.994
+训练数据只有 synthetic defect 正样本
+缺少真实 train/good 空 mask 负样本约束
+```
+
+主要改动：
+
+```text
+1. U-Net 训练支持 --good-negative-samples。
+2. 训练时加入 100 张 leather train/good 空 mask 负样本。
+3. 修复 leather/cut 生成分布。
+4. 输出 threshold_sweep.csv 和 postprocess_sweep.csv。
+```
+
+第 11 阶段关键训练命令：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category leather --image-size 256 --epochs 30 --batch-size 4 --seed 604 --traditional-summary outputs/stage11_leather_precision_cut_fix/quality_filter/leather/accepted_traditional_summary.csv --diffusion-summary outputs/stage11_leather_precision_cut_fix/quality_filter/leather/accepted_diffusion_summary.csv --output-dir outputs/training/unet_segmentation_stage11_leather_precision_cut_fix --experiments combined --good-negative-samples 100
+```
+
+第 10 / 第 11 阶段对比：
+
+```text
+stage10 leather:
+  Pixel Precision = 0.0305
+  Pixel Recall = 0.5488
+  Pixel F1 = 0.0579
+  Best Pixel F1 = 0.1444
+  Image F1 = 0.8519
+  cut Dice = 0.0215
+
+stage11 leather precision / cut fixed:
+  Pixel Precision = 0.8752
+  Pixel Recall = 0.3282
+  Pixel F1 = 0.4774
+  Best Pixel F1 = 0.5219
+  Image F1 = 0.9667
+  cut Dice = 0.4064
+```
+
+第 11 阶段结论：
+
+```text
+加入真实 good negative 后，leather 的过分割问题明显缓解。
+这说明生成增强不仅要补缺陷样本，也要用正常样本约束模型边界。
 ```
 
 ---

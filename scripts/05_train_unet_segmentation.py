@@ -131,6 +131,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=Path("outputs") / "training" / "unet_segmentation")
     parser.add_argument("--keep-existing", action="store_true", help="Do not clear previous U-Net outputs.")
     parser.add_argument(
+        "--good-negative-samples",
+        type=int,
+        default=0,
+        help="Number of real train/good images to add as empty-mask negative training samples.",
+    )
+    parser.add_argument(
         "--experiments",
         nargs="+",
         choices=EXPERIMENTS,
@@ -201,6 +207,23 @@ def load_synthetic_samples(summary_path: Path, source: str) -> list[Segmentation
     return samples
 
 
+def collect_good_negative_samples(category_root: Path, count: int, seed: int) -> list[SegmentationSample]:
+    if count <= 0:
+        return []
+    good_images = list_images(category_root / "train" / "good")
+    if not good_images:
+        raise FileNotFoundError(f"No train/good images found in: {(category_root / 'train' / 'good').as_posix()}")
+    rng = np.random.default_rng(seed)
+    if count <= len(good_images):
+        indices = rng.choice(len(good_images), size=count, replace=False)
+    else:
+        indices = rng.choice(len(good_images), size=count, replace=True)
+    return [
+        SegmentationSample(good_images[int(index)], None, "good_negative", 0, "real_train_good")
+        for index in indices
+    ]
+
+
 def collect_test_samples(category_root: Path, defect_types: list[str]) -> list[SegmentationSample]:
     samples: list[SegmentationSample] = []
     for defect_type in ["good", *defect_types]:
@@ -257,6 +280,78 @@ def best_f1_threshold(y_true: np.ndarray, y_score: np.ndarray) -> tuple[float, d
             best_threshold = float(threshold)
             best_metrics = metrics
     return best_threshold, best_metrics
+
+
+def threshold_sweep(y_true: np.ndarray, y_score: np.ndarray) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for threshold in np.arange(0.05, 0.951, 0.01):
+        metrics = binary_metrics(y_true, y_score >= float(threshold))
+        rows.append({
+            "threshold": float(threshold),
+            "pixel_precision": metrics["precision"],
+            "pixel_recall": metrics["recall"],
+            "pixel_f1": metrics["f1"],
+            "pixel_iou": metrics["iou"],
+        })
+    return rows
+
+
+def remove_small_components(mask: np.ndarray, min_area_pixels: int) -> np.ndarray:
+    if min_area_pixels <= 0:
+        return mask.astype(np.uint8)
+    mask_bool = mask.astype(bool)
+    height, width = mask_bool.shape
+    visited = np.zeros_like(mask_bool, dtype=bool)
+    output = np.zeros_like(mask_bool, dtype=bool)
+    for y in range(height):
+        for x in range(width):
+            if not mask_bool[y, x] or visited[y, x]:
+                continue
+            stack = [(y, x)]
+            visited[y, x] = True
+            component: list[tuple[int, int]] = []
+            while stack:
+                cy, cx = stack.pop()
+                component.append((cy, cx))
+                for ny in range(max(0, cy - 1), min(height, cy + 2)):
+                    for nx in range(max(0, cx - 1), min(width, cx + 2)):
+                        if mask_bool[ny, nx] and not visited[ny, nx]:
+                            visited[ny, nx] = True
+                            stack.append((ny, nx))
+            if len(component) >= min_area_pixels:
+                ys, xs = zip(*component)
+                output[np.array(ys), np.array(xs)] = True
+    return output.astype(np.uint8)
+
+
+def postprocess_sweep(
+    y_true_images: list[np.ndarray],
+    y_prob_images: list[np.ndarray],
+    thresholds: list[float],
+    min_area_ratios: list[float],
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    image_area = int(y_prob_images[0].size) if y_prob_images else 0
+    labels_flat = np.concatenate([mask.reshape(-1) for mask in y_true_images])
+    for threshold in thresholds:
+        for min_area_ratio in min_area_ratios:
+            min_area_pixels = int(round(min_area_ratio * image_area))
+            preds = [
+                remove_small_components((prob >= threshold).astype(np.uint8), min_area_pixels).reshape(-1)
+                for prob in y_prob_images
+            ]
+            pred_flat = np.concatenate(preds)
+            metrics = binary_metrics(labels_flat, pred_flat)
+            rows.append({
+                "threshold": float(threshold),
+                "min_component_area_ratio": float(min_area_ratio),
+                "min_component_area_pixels": min_area_pixels,
+                "pixel_precision": metrics["precision"],
+                "pixel_recall": metrics["recall"],
+                "pixel_f1": metrics["f1"],
+                "pixel_iou": metrics["iou"],
+            })
+    return rows
 
 
 def read_mask(sample: SegmentationSample, image_size: int) -> Image.Image:
@@ -376,6 +471,8 @@ def evaluate_model(
     rows: list[dict[str, object]] = []
     pixel_labels: list[np.ndarray] = []
     pixel_probs: list[np.ndarray] = []
+    pixel_label_images: list[np.ndarray] = []
+    pixel_prob_images: list[np.ndarray] = []
     image_labels: list[int] = []
     image_scores: list[float] = []
 
@@ -427,6 +524,8 @@ def evaluate_model(
         )
         pixel_labels.append(gt_arr.reshape(-1))
         pixel_probs.append(prob.reshape(-1))
+        pixel_label_images.append(gt_arr)
+        pixel_prob_images.append(prob)
         image_labels.append(sample.label)
         image_scores.append(image_score)
 
@@ -439,6 +538,15 @@ def evaluate_model(
     pixel_05 = binary_metrics(pixel_labels_np, pixel_pred_05)
     image_05 = binary_metrics(image_labels_np, image_pred_05)
     best_threshold, best_pixel = best_f1_threshold(pixel_labels_np, pixel_probs_np)
+    threshold_rows = threshold_sweep(pixel_labels_np, pixel_probs_np)
+    postprocess_rows = postprocess_sweep(
+        pixel_label_images,
+        pixel_prob_images,
+        thresholds=[0.5, best_threshold],
+        min_area_ratios=[0.0, 0.0002, 0.0005, 0.001, 0.002],
+    )
+    best_threshold_row = max(threshold_rows, key=lambda row: float(row["pixel_f1"]))
+    best_postprocess_row = max(postprocess_rows, key=lambda row: float(row["pixel_f1"]))
 
     class_metrics: dict[str, dict[str, float]] = {}
     for defect_type in ["good", *defect_types]:
@@ -453,6 +561,8 @@ def evaluate_model(
     metrics: dict[str, object] = {
         "experiment": experiment,
         "train_samples": train_sample_count,
+        "synthetic_train_samples": train_sample_count - args.good_negative_samples,
+        "good_negative_samples": args.good_negative_samples,
         "test_samples": len(test_samples),
         "image_size": args.image_size,
         "threshold": 0.5,
@@ -469,9 +579,13 @@ def evaluate_model(
         "image_precision": image_05["precision"],
         "image_recall": image_05["recall"],
         "image_f1": image_05["f1"],
+        "threshold_sweep_best": best_threshold_row,
+        "postprocess_sweep_best": best_postprocess_row,
         "class_metrics": class_metrics,
     }
     write_csv(rows, experiment_root / "test_predictions.csv")
+    write_csv(threshold_rows, experiment_root / "threshold_sweep.csv")
+    write_csv(postprocess_rows, experiment_root / "postprocess_sweep.csv")
     write_json(metrics, experiment_root / "metrics.json")
     return metrics
 
@@ -544,6 +658,7 @@ def main() -> None:
     category_root = validate_dataset(args.data_root, args.category, defect_types)
     traditional_samples = load_synthetic_samples(args.traditional_summary, "traditional")
     diffusion_samples = load_synthetic_samples(args.diffusion_summary, "diffusion")
+    good_negative_samples = collect_good_negative_samples(category_root, args.good_negative_samples, args.seed)
     test_samples = collect_test_samples(category_root, defect_types)
 
     output_root = args.output_dir / args.category
@@ -552,9 +667,9 @@ def main() -> None:
     output_root.mkdir(parents=True, exist_ok=True)
 
     experiment_samples = {
-        "traditional": traditional_samples,
-        "diffusion": diffusion_samples,
-        "combined": traditional_samples + diffusion_samples,
+        "traditional": traditional_samples + good_negative_samples,
+        "diffusion": diffusion_samples + good_negative_samples,
+        "combined": traditional_samples + diffusion_samples + good_negative_samples,
     }
     comparison_rows: list[dict[str, object]] = []
     for experiment in args.experiments:

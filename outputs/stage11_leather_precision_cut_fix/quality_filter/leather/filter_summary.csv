@@ -1,0 +1,11 @@
+synthetic_source,defect_type,accepted
+traditional,color,17
+traditional,cut,20
+traditional,fold,13
+traditional,glue,20
+traditional,poke,20
+diffusion,color,10
+diffusion,cut,10
+diffusion,fold,10
+diffusion,glue,10
+diffusion,poke,10

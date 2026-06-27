@@ -662,40 +662,51 @@ def generate_leather_cut(image: np.ndarray, rng: np.random.Generator) -> tuple[n
     height, width = image.shape[:2]
     mask_img = Image.new("L", (width, height), 0)
     core_img = Image.new("L", (width, height), 0)
+    edge_img = Image.new("L", (width, height), 0)
     mask_draw = ImageDraw.Draw(mask_img)
     core_draw = ImageDraw.Draw(core_img)
-    center = np.array([float(rng.uniform(width * 0.16, width * 0.84)), float(rng.uniform(height * 0.16, height * 0.84))])
+    edge_draw = ImageDraw.Draw(edge_img)
+    center = np.array([float(rng.uniform(width * 0.18, width * 0.82)), float(rng.uniform(height * 0.18, height * 0.82))])
     angle = float(rng.uniform(0, np.pi))
     direction = np.array([np.cos(angle), np.sin(angle)])
     normal = np.array([-direction[1], direction[0]])
-    length = float(min(width, height) * rng.uniform(0.12, 0.35))
-    point_count = int(rng.integers(3, 6))
+    length = float(min(width, height) * rng.uniform(0.18, 0.42))
+    point_count = int(rng.integers(4, 7))
     points: list[tuple[int, int]] = []
     for index in range(point_count):
         t = index / max(point_count - 1, 1) - 0.5
-        point = center + direction * length * t + normal * float(rng.normal(0, min(width, height) * 0.012))
+        point = center + direction * length * t + normal * float(rng.normal(0, min(width, height) * 0.008))
         points.append((int(np.clip(point[0], 0, width - 1)), int(np.clip(point[1], 0, height - 1))))
-    line_width = int(rng.integers(5, 12))
+    line_width = int(rng.integers(8, 16))
     mask_draw.line(points, fill=255, width=line_width, joint="curve")
-    core_draw.line(points, fill=255, width=max(1, int(line_width * 0.35)), joint="curve")
+    core_draw.line(points, fill=255, width=max(1, int(line_width * 0.30)), joint="curve")
+    edge_draw.line(points, fill=255, width=max(2, int(line_width * 0.75)), joint="curve")
 
-    if rng.random() < 0.35:
+    if rng.random() < 0.25:
         side = [(
-            int(np.clip(x + normal[0] * rng.uniform(5, 14), 0, width - 1)),
-            int(np.clip(y + normal[1] * rng.uniform(5, 14), 0, height - 1)),
+            int(np.clip(x + normal[0] * rng.uniform(4, 10), 0, width - 1)),
+            int(np.clip(y + normal[1] * rng.uniform(4, 10), 0, height - 1)),
         ) for x, y in points]
-        mask_draw.line(side, fill=180, width=max(2, int(line_width * 0.45)), joint="curve")
+        side_width = max(2, int(line_width * 0.38))
+        mask_draw.line(side, fill=180, width=side_width, joint="curve")
+        edge_draw.line(side, fill=160, width=max(2, int(side_width * 0.75)), joint="curve")
 
-    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.8, 1.8)))), dtype=np.float32) / 255.0
+    mask_arr = np.array(mask_img)
+    if float((mask_arr > 0).mean()) < 0.003:
+        mask_img = mask_img.filter(ImageFilter.MaxFilter(3))
+        edge_img = edge_img.filter(ImageFilter.MaxFilter(3))
+    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.6, 1.4)))), dtype=np.float32) / 255.0
     core_mask = np.array(core_img.filter(ImageFilter.GaussianBlur(radius=0.5)), dtype=np.float32) / 255.0
+    edge_mask = np.array(edge_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.8, 1.8)))), dtype=np.float32) / 255.0
     mask = (np.array(mask_img) > 0).astype(np.uint8)
     image_float = image.astype(np.float32)
-    dark = image_float * float(rng.uniform(0.55, 0.78))
-    if rng.random() < 0.45:
-        dark = dark + float(rng.uniform(10, 28))
-    alpha = float(rng.uniform(0.42, 0.68))
-    output = image_float * (1 - soft_mask[..., None] * alpha) + dark * (soft_mask[..., None] * alpha)
-    output = output - core_mask[..., None] * float(rng.uniform(8, 22))
+    local_mean = image_float.mean(axis=2, keepdims=True)
+    bright_cut = image_float * float(rng.uniform(0.72, 0.88)) + local_mean * float(rng.uniform(0.12, 0.28))
+    bright_cut = bright_cut + float(rng.uniform(24, 48))
+    alpha = float(rng.uniform(0.45, 0.68))
+    output = image_float * (1 - soft_mask[..., None] * alpha) + bright_cut * (soft_mask[..., None] * alpha)
+    output = output - core_mask[..., None] * float(rng.uniform(4, 12))
+    output = output + np.clip(edge_mask - core_mask, 0, 1)[..., None] * float(rng.uniform(8, 20))
     return np.clip(output, 0, 255).astype(np.uint8), mask, {
         "points": [[int(x), int(y)] for x, y in points],
         "line_width": line_width,
