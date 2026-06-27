@@ -21,6 +21,7 @@ from torchvision import transforms
 CATEGORY_DEFECT_TYPES = {
     "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
     "wood": ["color", "combined", "hole", "liquid", "scratch"],
+    "leather": ["color", "cut", "fold", "glue", "poke"],
 }
 EXPERIMENTS = ["traditional", "diffusion", "combined"]
 EXPERIMENT_SEED_OFFSETS = {

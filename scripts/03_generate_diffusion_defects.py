@@ -16,6 +16,7 @@ from PIL import Image
 CATEGORY_DEFECT_TYPES = {
     "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
     "wood": ["color", "hole", "liquid", "scratch", "combined"],
+    "leather": ["color", "cut", "fold", "glue", "poke"],
 }
 
 CATEGORY_PROMPTS = {
@@ -32,6 +33,13 @@ CATEGORY_PROMPTS = {
         "liquid": "a realistic translucent liquid stain defect on industrial wood surface, natural grain texture, inspection image, visible wet contamination",
         "scratch": "realistic long bright scratch marks and large shallow abrasion on industrial wood surface, follows natural wood grain texture, inspection image, visible wide scratched defect",
         "combined": "realistic combined defects on industrial wood surface, local stain and scratch damage, natural grain texture, inspection image",
+    },
+    "leather": {
+        "color": "a realistic dark color stain defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
+        "cut": "a realistic narrow cut defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
+        "fold": "a realistic elongated fold crease defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
+        "glue": "a realistic pale translucent glue smear defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
+        "poke": "a realistic small poke hole defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
     },
 }
 

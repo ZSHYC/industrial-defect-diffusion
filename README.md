@@ -134,6 +134,7 @@ conda activate industrial-defect-diffusion
 第 7 阶段：crack 专项改进与最终实验整理
 第 8 阶段：wood 类别泛化验证与复现实验包
 第 9 阶段：wood scratch 专项修复与跨类别误差分析
+第 10 阶段：leather 第三类别泛化验证
 ```
 
 重要原则：
@@ -162,6 +163,7 @@ conda activate industrial-defect-diffusion
 - [第 7 阶段：crack 专项改进与最终实验整理](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-07-crack-improvement-and-final-analysis.md)
 - [第 8 阶段：wood 类别泛化验证与复现实验包](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-08-wood-generalization.md)
 - [第 9 阶段：wood scratch 专项修复与跨类别误差分析](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-09-wood-scratch-fix.md)
+- [第 10 阶段：leather 第三类别泛化验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-10-leather-generalization.md)
 
 后续阶段文档将继续放在：
 
@@ -543,6 +545,78 @@ stage9 wood scratch fixed combined:
 
 ```text
 第 8 阶段证明流程可以迁移到 wood；第 9 阶段证明迁移后仍需要类别级误差分析和生成分布修复。
+```
+
+### 第 10 阶段 leather 第三类别泛化验证
+
+第 10 阶段将流程继续迁移到第三个表面类别 `leather`。
+
+新增类别配置：
+
+```text
+leather:
+  color
+  cut
+  fold
+  glue
+  poke
+```
+
+一键复现实验：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/10_run_leather_generalization.py --local-files-only
+```
+
+分步命令：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/01_explore_dataset.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category leather --output-dir outputs/eda
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/02_generate_traditional_defects.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category leather --samples-per-type 20 --seed 504 --output-dir outputs/stage10_leather_synthetic/traditional
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/03_generate_diffusion_defects.py --category leather --traditional-summary outputs/stage10_leather_synthetic/traditional/leather/summary.csv --samples-per-type 10 --num-inference-steps 30 --seed 504 --local-files-only --output-dir outputs/stage10_leather_synthetic/diffusion
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/06_filter_synthetic_quality.py --traditional-summary outputs/stage10_leather_synthetic/traditional/leather/summary.csv --diffusion-summary outputs/stage10_leather_synthetic/diffusion/leather/summary.csv --output-dir outputs/stage10_leather_quality_filter/leather
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category leather --image-size 256 --epochs 30 --batch-size 4 --seed 504 --traditional-summary outputs/stage10_leather_quality_filter/leather/accepted_traditional_summary.csv --diffusion-summary outputs/stage10_leather_quality_filter/leather/accepted_diffusion_summary.csv --output-dir outputs/training/unet_segmentation_stage10_leather --experiments combined
+```
+
+第 10 阶段关键结果：
+
+```text
+leather traditional: 100
+leather diffusion: 50
+quality accepted: 135
+quality rejected: 15
+
+leather combined:
+  Pixel Precision = 0.0305
+  Pixel Recall = 0.5488
+  Pixel F1 = 0.0579
+  Best Pixel F1 = 0.1444
+  Image F1 = 0.8519
+  color Dice = 0.2760
+  cut Dice = 0.0215
+  fold Dice = 0.2453
+  glue Dice = 0.1703
+  poke Dice = 0.2118
+```
+
+第 10 阶段结论：
+
+```text
+流程已经迁移到 tile、wood、leather 三个类别。
+leather 证明第三类别闭环可以跑通，但也暴露出小面积缺陷下 pixel precision 很低的问题。
+如果继续推进，下一步应优先做 leather precision / cut 专项修复，而不是继续盲目扩类别。
 ```
 
 ---

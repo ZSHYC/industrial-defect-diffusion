@@ -1,0 +1,8 @@
+split,defect_type,image_count,mask_count,missing_masks
+train,good,245,0,0
+test,color,19,19,0
+test,cut,19,19,0
+test,fold,17,17,0
+test,glue,19,19,0
+test,good,32,0,0
+test,poke,18,18,0

@@ -14,6 +14,7 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 CATEGORY_DEFECT_TYPES = {
     "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
     "wood": ["color", "hole", "liquid", "scratch", "combined"],
+    "leather": ["color", "cut", "fold", "glue", "poke"],
 }
 
 
@@ -605,6 +606,229 @@ def generate_wood_combined(image: np.ndarray, rng: np.random.Generator) -> tuple
     }
 
 
+def generate_leather_color(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    target_area_ratio = float(rng.uniform(0.0025, 0.014))
+    fill_factor = float(rng.uniform(0.42, 0.68))
+    aspect = float(rng.choice([rng.uniform(0.7, 1.3), rng.uniform(1.4, 2.7)]))
+    bbox_area = target_area_ratio * width * height / fill_factor
+    axis_y = float(np.sqrt(bbox_area / max(aspect, 0.1)) * 0.5)
+    axis_x = float(axis_y * aspect)
+    axis_x = float(np.clip(axis_x, width * 0.025, width * 0.12))
+    axis_y = float(np.clip(axis_y, height * 0.025, height * 0.12))
+    center_x = float(rng.uniform(width * 0.12, width * 0.88))
+    center_y = float(rng.uniform(height * 0.12, height * 0.88))
+    angle = float(rng.uniform(0, np.pi))
+
+    yy, xx = np.mgrid[0:height, 0:width].astype(np.float32)
+    dx = xx - center_x
+    dy = yy - center_y
+    cos_a = np.cos(angle)
+    sin_a = np.sin(angle)
+    u = (dx * cos_a + dy * sin_a) / axis_x
+    v = (-dx * sin_a + dy * cos_a) / axis_y
+    field = np.clip(1.0 - (u * u + v * v), 0.0, 1.0)
+    coarse = Image.fromarray((rng.random((max(8, height // 18), max(8, width // 18))) * 255).astype(np.uint8), mode="L")
+    coarse = coarse.resize((width, height), Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(radius=3))
+    noise = np.array(coarse, dtype=np.float32) / 255.0
+    field = field * (0.80 + 0.35 * noise)
+    mask = (field > float(rng.uniform(0.36, 0.50))).astype(np.uint8)
+    soft_mask = np.array(
+        Image.fromarray(mask * 255).filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(1.8, 4.0)))),
+        dtype=np.float32,
+    ) / 255.0
+
+    image_float = image.astype(np.float32)
+    tint = np.array([
+        float(rng.uniform(45, 95)),
+        float(rng.uniform(25, 65)),
+        float(rng.uniform(18, 55)),
+    ])
+    alpha = float(rng.uniform(0.26, 0.48))
+    output = image_float * (1 - soft_mask[..., None] * alpha) + tint * (soft_mask[..., None] * alpha)
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "center": [center_x, center_y],
+        "axis_x": axis_x,
+        "axis_y": axis_y,
+        "angle": angle,
+        "target_area_ratio": target_area_ratio,
+        "actual_area_ratio": float(mask.mean()),
+        "tint": tint.tolist(),
+        "alpha": alpha,
+    }
+
+
+def generate_leather_cut(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    mask_img = Image.new("L", (width, height), 0)
+    core_img = Image.new("L", (width, height), 0)
+    mask_draw = ImageDraw.Draw(mask_img)
+    core_draw = ImageDraw.Draw(core_img)
+    center = np.array([float(rng.uniform(width * 0.16, width * 0.84)), float(rng.uniform(height * 0.16, height * 0.84))])
+    angle = float(rng.uniform(0, np.pi))
+    direction = np.array([np.cos(angle), np.sin(angle)])
+    normal = np.array([-direction[1], direction[0]])
+    length = float(min(width, height) * rng.uniform(0.12, 0.35))
+    point_count = int(rng.integers(3, 6))
+    points: list[tuple[int, int]] = []
+    for index in range(point_count):
+        t = index / max(point_count - 1, 1) - 0.5
+        point = center + direction * length * t + normal * float(rng.normal(0, min(width, height) * 0.012))
+        points.append((int(np.clip(point[0], 0, width - 1)), int(np.clip(point[1], 0, height - 1))))
+    line_width = int(rng.integers(5, 12))
+    mask_draw.line(points, fill=255, width=line_width, joint="curve")
+    core_draw.line(points, fill=255, width=max(1, int(line_width * 0.35)), joint="curve")
+
+    if rng.random() < 0.35:
+        side = [(
+            int(np.clip(x + normal[0] * rng.uniform(5, 14), 0, width - 1)),
+            int(np.clip(y + normal[1] * rng.uniform(5, 14), 0, height - 1)),
+        ) for x, y in points]
+        mask_draw.line(side, fill=180, width=max(2, int(line_width * 0.45)), joint="curve")
+
+    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.8, 1.8)))), dtype=np.float32) / 255.0
+    core_mask = np.array(core_img.filter(ImageFilter.GaussianBlur(radius=0.5)), dtype=np.float32) / 255.0
+    mask = (np.array(mask_img) > 0).astype(np.uint8)
+    image_float = image.astype(np.float32)
+    dark = image_float * float(rng.uniform(0.55, 0.78))
+    if rng.random() < 0.45:
+        dark = dark + float(rng.uniform(10, 28))
+    alpha = float(rng.uniform(0.42, 0.68))
+    output = image_float * (1 - soft_mask[..., None] * alpha) + dark * (soft_mask[..., None] * alpha)
+    output = output - core_mask[..., None] * float(rng.uniform(8, 22))
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "points": [[int(x), int(y)] for x, y in points],
+        "line_width": line_width,
+        "length": length,
+        "angle": angle,
+        "alpha": alpha,
+        "actual_area_ratio": float(mask.mean()),
+    }
+
+
+def generate_leather_fold(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    center = np.array([float(rng.uniform(width * 0.18, width * 0.82)), float(rng.uniform(height * 0.18, height * 0.82))])
+    angle = float(rng.choice([rng.normal(0, 0.30), rng.normal(np.pi / 2, 0.30), rng.uniform(0, np.pi)]))
+    direction = np.array([np.cos(angle), np.sin(angle)])
+    normal = np.array([-direction[1], direction[0]])
+    length = float(min(width, height) * rng.uniform(0.25, 0.62))
+    band_width = float(min(width, height) * rng.uniform(0.035, 0.085))
+    segments = int(rng.integers(5, 9))
+    left: list[tuple[int, int]] = []
+    right: list[tuple[int, int]] = []
+    ridge_points: list[tuple[int, int]] = []
+    for index in range(segments):
+        t = index / max(segments - 1, 1) - 0.5
+        base = center + direction * length * t + normal * float(rng.normal(0, min(width, height) * 0.018))
+        half_width = band_width * float(rng.uniform(0.75, 1.30))
+        left_point = base - normal * half_width
+        right_point = base + normal * half_width
+        left.append((int(np.clip(left_point[0], 0, width - 1)), int(np.clip(left_point[1], 0, height - 1))))
+        right.append((int(np.clip(right_point[0], 0, width - 1)), int(np.clip(right_point[1], 0, height - 1))))
+        ridge_points.append((int(np.clip(base[0], 0, width - 1)), int(np.clip(base[1], 0, height - 1))))
+    points = left + right[::-1]
+
+    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(2.5, 5.0)))
+    mask = (soft_mask > 0.20).astype(np.uint8)
+    ridge_img = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(ridge_img).line(ridge_points, fill=255, width=max(2, int(band_width * 0.35)), joint="curve")
+    ridge = np.array(ridge_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(2, 5)))), dtype=np.float32) / 255.0
+
+    image_float = image.astype(np.float32)
+    local_mean = image_float.mean(axis=2, keepdims=True)
+    folded = image_float * float(rng.uniform(0.86, 1.08)) + local_mean * float(rng.uniform(-0.04, 0.08))
+    folded = folded + soft_mask[..., None] * float(rng.uniform(-12, 16))
+    folded = folded + ridge[..., None] * float(rng.uniform(10, 28))
+    alpha = float(rng.uniform(0.42, 0.68))
+    output = image_float * (1 - soft_mask[..., None] * alpha) + folded * (soft_mask[..., None] * alpha)
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "points": [[int(x), int(y)] for x, y in points],
+        "ridge_points": [[int(x), int(y)] for x, y in ridge_points],
+        "length": length,
+        "band_width": band_width,
+        "angle": angle,
+        "alpha": alpha,
+        "actual_area_ratio": float(mask.mean()),
+    }
+
+
+def generate_leather_glue(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    center = np.array([float(rng.uniform(width * 0.15, width * 0.85)), float(rng.uniform(height * 0.15, height * 0.85))])
+    angle = float(rng.uniform(0, np.pi))
+    direction = np.array([np.cos(angle), np.sin(angle)])
+    normal = np.array([-direction[1], direction[0]])
+    length = float(min(width, height) * rng.uniform(0.10, 0.28))
+    strip_width = float(min(width, height) * rng.uniform(0.018, 0.050))
+    segments = int(rng.integers(4, 8))
+    left: list[tuple[int, int]] = []
+    right: list[tuple[int, int]] = []
+    for index in range(segments):
+        t = index / max(segments - 1, 1) - 0.5
+        base = center + direction * length * t + normal * float(rng.normal(0, min(width, height) * 0.012))
+        half_width = strip_width * float(rng.uniform(0.6, 1.25))
+        left_point = base - normal * half_width
+        right_point = base + normal * half_width
+        left.append((int(np.clip(left_point[0], 0, width - 1)), int(np.clip(left_point[1], 0, height - 1))))
+        right.append((int(np.clip(right_point[0], 0, width - 1)), int(np.clip(right_point[1], 0, height - 1))))
+    points = left + right[::-1]
+    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(2.0, 4.5)))
+    mask = (soft_mask > 0.16).astype(np.uint8)
+    tint = np.array([
+        float(rng.uniform(185, 230)),
+        float(rng.uniform(170, 215)),
+        float(rng.uniform(135, 185)),
+    ])
+    alpha = float(rng.uniform(0.24, 0.46))
+    output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + tint * (soft_mask[..., None] * alpha)
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "points": [[int(x), int(y)] for x, y in points],
+        "length": length,
+        "strip_width": strip_width,
+        "angle": angle,
+        "tint": tint.tolist(),
+        "alpha": alpha,
+        "actual_area_ratio": float(mask.mean()),
+    }
+
+
+def generate_leather_poke(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    center_x = int(rng.integers(width * 0.12, width * 0.88))
+    center_y = int(rng.integers(height * 0.12, height * 0.88))
+    radius_x = float(rng.uniform(width * 0.018, width * 0.045))
+    radius_y = float(rng.uniform(height * 0.018, height * 0.045))
+    point_count = int(rng.integers(9, 16))
+    points: list[tuple[int, int]] = []
+    for index in range(point_count):
+        angle = 2 * np.pi * index / point_count
+        jitter = float(rng.uniform(0.65, 1.35))
+        x = center_x + np.cos(angle) * radius_x * jitter
+        y = center_y + np.sin(angle) * radius_y * jitter
+        points.append((int(np.clip(x, 0, width - 1)), int(np.clip(y, 0, height - 1))))
+    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(1.0, 2.3)))
+    mask = (soft_mask > 0.22).astype(np.uint8)
+    dark_tone = np.array([
+        float(rng.uniform(20, 55)),
+        float(rng.uniform(12, 42)),
+        float(rng.uniform(8, 35)),
+    ])
+    alpha = float(rng.uniform(0.54, 0.82))
+    output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + dark_tone * (soft_mask[..., None] * alpha)
+    edge = np.clip(soft_mask - np.array(Image.fromarray(mask * 255).filter(ImageFilter.MinFilter(3)), dtype=np.float32) / 255.0, 0, 1)
+    output = output + edge[..., None] * float(rng.uniform(8, 20))
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "center": [center_x, center_y],
+        "radius_x": radius_x,
+        "radius_y": radius_y,
+        "point_count": point_count,
+        "dark_tone": dark_tone.tolist(),
+        "alpha": alpha,
+        "actual_area_ratio": float(mask.mean()),
+    }
+
+
 GENERATORS = {
     "crack": generate_crack,
     "glue_strip": generate_glue_strip,
@@ -621,9 +845,18 @@ WOOD_GENERATORS = {
 }
 WOOD_GENERATORS["combined"] = generate_wood_combined
 
+LEATHER_GENERATORS = {
+    "color": generate_leather_color,
+    "cut": generate_leather_cut,
+    "fold": generate_leather_fold,
+    "glue": generate_leather_glue,
+    "poke": generate_leather_poke,
+}
+
 CATEGORY_GENERATORS = {
     "tile": GENERATORS,
     "wood": WOOD_GENERATORS,
+    "leather": LEATHER_GENERATORS,
 }
 
 
