@@ -16,7 +16,7 @@ from PIL import Image
 DEFECT_TYPES = ["crack", "glue_strip", "gray_stroke", "oil", "rough"]
 
 PROMPTS = {
-    "crack": "a realistic long thin dark crack defect on industrial ceramic tile surface, inspection image, natural texture",
+    "crack": "a realistic long branching dark hairline crack fracture across industrial ceramic tile surface, thin irregular fracture lines, inspection image, natural texture",
     "glue_strip": "a realistic pale translucent glue strip defect on industrial ceramic tile surface, inspection image, natural texture",
     "gray_stroke": "a realistic dark gray black irregular smudge stain defect on industrial ceramic tile surface, rough local contamination, inspection image, visible defect region",
     "oil": "a realistic yellow brown translucent oil stain defect on industrial ceramic tile surface, inspection image, visible contamination",

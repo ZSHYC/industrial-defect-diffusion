@@ -131,7 +131,7 @@ conda activate industrial-defect-diffusion
 第 4 阶段：异常检测 baseline
 第 5 阶段：分割训练与实验评估
 第 6 阶段：扩大生成数据、质量筛选与监督分割再验证
-第 7 阶段：项目报告、README、面试表达整理
+第 7 阶段：crack 专项改进与最终实验整理
 ```
 
 重要原则：
@@ -157,6 +157,7 @@ conda activate industrial-defect-diffusion
 - [第 4 阶段：PatchCore 风格无监督异常检测 Baseline](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-04-patchcore-baseline.md)
 - [第 5 阶段：U-Net 监督分割训练与生成数据增强对比](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-05-unet-segmentation.md)
 - [第 6 阶段：扩大生成数据、质量筛选与监督分割再验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-06-expanded-synthesis-and-filtering.md)
+- [第 7 阶段：crack 专项改进与最终实验整理](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-07-crack-improvement-and-final-analysis.md)
 
 后续阶段文档将继续放在：
 
@@ -330,6 +331,81 @@ conda run -n industrial-defect-diffusion python scripts/02_generate_traditional_
 gray_stroke fixed combined: Pixel F1 = 0.8573
 gray_stroke fixed combined: Image F1 = 0.9492
 gray_stroke class Dice = 0.8409
+```
+
+### 第 7 阶段 crack 专项改进与最终实验整理
+
+第 7 阶段沿用第 6 阶段的误差分析路线，针对 `crack` 类继续做专项改进：
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/02_generate_traditional_defects.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --samples-per-type 20 --seed 204 --output-dir outputs/stage7_synthetic/traditional
+```
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/03_generate_diffusion_defects.py --category tile --traditional-summary outputs/stage7_synthetic/traditional/tile/summary.csv --samples-per-type 10 --num-inference-steps 30 --seed 204 --local-files-only --output-dir outputs/stage7_synthetic/diffusion
+```
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/06_filter_synthetic_quality.py --traditional-summary outputs/stage7_synthetic/traditional/tile/summary.csv --diffusion-summary outputs/stage7_synthetic/diffusion/tile/summary.csv --output-dir outputs/stage7_quality_filter/tile
+```
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/07_analyze_crack_distribution.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile
+```
+
+```powershell
+conda run -n industrial-defect-diffusion python scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category tile --image-size 256 --epochs 30 --batch-size 4 --seed 104 --traditional-summary outputs/stage7_quality_filter/tile/accepted_traditional_summary.csv --diffusion-summary outputs/stage7_quality_filter/tile/accepted_diffusion_summary.csv --output-dir outputs/training/unet_segmentation_stage7 --experiments combined
+```
+
+第 7 阶段关键结果：
+
+```text
+stage7 combined: Pixel F1 = 0.8433
+stage7 combined: Best Pixel F1 = 0.8668
+stage7 combined: Image F1 = 0.9711
+stage7 crack Dice = 0.7589
+stage7 crack Recall = 0.6841
+```
+
+第 7 阶段结论：
+
+```text
+crack 生成分布修复后，crack Dice 从 0.6120 提升到 0.7589，
+crack Recall 从 0.4732 提升到 0.6841。
+整体默认 Pixel F1 从 0.8573 小幅下降到 0.8433，
+说明类别级改进会带来 overall pixel precision / recall 权衡。
+```
+
+最终推荐指标摘要：
+
+```text
+stage5 small combined:
+  Pixel F1 = 0.8064
+  Image F1 = 0.8615
+
+stage6 expanded combined:
+  Pixel F1 = 0.7667
+  Image F1 = 0.8715
+  gray_stroke Dice = 0.0022
+
+stage6 gray_stroke fixed combined:
+  Pixel F1 = 0.8573
+  Image F1 = 0.9492
+  gray_stroke Dice = 0.8409
+
+stage7 crack improved combined:
+  Pixel F1 = 0.8433
+  Best Pixel F1 = 0.8668
+  Image F1 = 0.9711
+  crack Dice = 0.7589
+```
+
+最终项目表达：
+
+```text
+本项目不是证明 Diffusion 图片“看起来像”，而是通过真实测试集验证生成数据是否提升分割效果。
+第 6 阶段发现 gray_stroke 失败后，通过类别级误差分析修复生成分布，Pixel F1 从 0.7667 提升到 0.8573。
+第 7 阶段继续对 crack 做专项优化，验证生成质量、类别分布和下游指标之间的关系。
 ```
 
 ---

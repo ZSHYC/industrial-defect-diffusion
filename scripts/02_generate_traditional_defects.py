@@ -74,54 +74,88 @@ def random_polyline(rng: np.random.Generator, width: int, height: int, point_cou
 
 def generate_crack(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
     height, width = image.shape[:2]
-    line_width = int(rng.integers(5, 11))
+    main_width = int(rng.integers(11, 22))
+    point_count = int(rng.integers(5, 9))
 
-    # Real tile cracks are usually long, dominant dark fractures with only small branches.
-    center_x = float(rng.uniform(width * 0.25, width * 0.75))
-    center_y = float(rng.uniform(height * 0.25, height * 0.75))
-    angle = float(rng.uniform(0, np.pi))
-    length = float(rng.uniform(min(width, height) * 0.55, min(width, height) * 0.85))
-    point_count = int(rng.integers(5, 8))
-    direction = np.array([np.cos(angle), np.sin(angle)])
-    normal = np.array([-np.sin(angle), np.cos(angle)])
+    # Real tile cracks often run from one border to another and may split near a junction.
+    side_a = int(rng.integers(0, 4))
+    side_b = int((side_a + int(rng.integers(1, 4))) % 4)
+
+    def sample_edge(side: int) -> np.ndarray:
+        if side == 0:
+            return np.array([float(rng.uniform(0, width - 1)), 0.0])
+        if side == 1:
+            return np.array([float(width - 1), float(rng.uniform(0, height - 1))])
+        if side == 2:
+            return np.array([float(rng.uniform(0, width - 1)), float(height - 1)])
+        return np.array([0.0, float(rng.uniform(0, height - 1))])
+
+    start = sample_edge(side_a)
+    end = sample_edge(side_b)
+    direction = end - start
+    direction_norm = direction / max(float(np.linalg.norm(direction)), 1.0)
+    normal = np.array([-direction_norm[1], direction_norm[0]])
     points: list[tuple[int, int]] = []
     for idx in range(point_count):
-        t = -0.5 + idx / (point_count - 1)
-        base = np.array([center_x, center_y]) + direction * length * t
-        jitter = normal * float(rng.normal(0, min(width, height) * 0.025))
-        x, y = base + jitter
-        points.append((int(np.clip(x, 0, width - 1)), int(np.clip(y, 0, height - 1))))
+        t = idx / (point_count - 1)
+        base = start * (1 - t) + end * t
+        bend = normal * float(rng.normal(0, min(width, height) * 0.035))
+        if idx in {0, point_count - 1}:
+            bend *= 0.2
+        point = base + bend
+        points.append((int(np.clip(point[0], 0, width - 1)), int(np.clip(point[1], 0, height - 1))))
 
     mask_img = Image.new("L", (width, height), 0)
-    draw = ImageDraw.Draw(mask_img)
-    draw.line(points, fill=255, width=line_width, joint="curve")
+    core_img = Image.new("L", (width, height), 0)
+    mask_draw = ImageDraw.Draw(mask_img)
+    core_draw = ImageDraw.Draw(core_img)
+    segment_widths: list[int] = []
+    for idx in range(len(points) - 1):
+        local_width = int(np.clip(main_width + rng.normal(0, 2.0), 7, 24))
+        segment_widths.append(local_width)
+        mask_draw.line([points[idx], points[idx + 1]], fill=255, width=local_width, joint="curve")
+        core_draw.line([points[idx], points[idx + 1]], fill=255, width=max(2, int(local_width * 0.42)), joint="curve")
 
-    branch_count = int(rng.integers(1, 2))
+    branch_count = int(rng.integers(1, 4))
     branches: list[list[tuple[int, int]]] = []
     for _ in range(branch_count):
-        anchor = points[int(rng.integers(1, len(points) - 1))]
-        branch = [anchor]
-        branch_angle = angle + float(rng.choice([-1, 1])) * float(rng.uniform(0.65, 1.2))
-        branch_length = float(rng.uniform(min(width, height) * 0.10, min(width, height) * 0.22))
-        branch.append((
-            int(np.clip(anchor[0] + np.cos(branch_angle) * branch_length, 0, width - 1)),
-            int(np.clip(anchor[1] + np.sin(branch_angle) * branch_length, 0, height - 1)),
-        ))
-        draw.line(branch, fill=255, width=max(1, line_width - 2))
-        branches.append(branch)
+        anchor_index = int(rng.integers(1, len(points) - 1))
+        anchor = np.array(points[anchor_index], dtype=np.float32)
+        base_angle = float(np.arctan2(direction_norm[1], direction_norm[0]))
+        branch_angle = base_angle + float(rng.choice([-1, 1])) * float(rng.uniform(0.55, 1.25))
+        branch_length = float(rng.uniform(min(width, height) * 0.18, min(width, height) * 0.42))
+        branch_points = [tuple(anchor.astype(int))]
+        branch_segments = int(rng.integers(2, 5))
+        current = anchor.copy()
+        for _ in range(branch_segments):
+            branch_angle += float(rng.normal(0, 0.20))
+            current = current + np.array([np.cos(branch_angle), np.sin(branch_angle)]) * branch_length / branch_segments
+            branch_points.append((int(np.clip(current[0], 0, width - 1)), int(np.clip(current[1], 0, height - 1))))
+        branch_width = max(3, int(main_width * float(rng.uniform(0.35, 0.70))))
+        mask_draw.line(branch_points, fill=255, width=branch_width, joint="curve")
+        core_draw.line(branch_points, fill=255, width=max(1, int(branch_width * 0.42)), joint="curve")
+        branches.append(branch_points)
 
-    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.4, 1.2)))), dtype=np.float32) / 255.0
+    mask_blur = float(rng.uniform(0.5, 1.4))
+    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=mask_blur)), dtype=np.float32) / 255.0
+    core_mask = np.array(core_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.2, 0.8)))), dtype=np.float32) / 255.0
     mask = (np.array(mask_img) > 0).astype(np.uint8)
 
-    dark_factor = float(rng.uniform(0.08, 0.24))
-    output = image.astype(np.float32).copy()
-    output = output * (1 - soft_mask[..., None]) + output * dark_factor * soft_mask[..., None]
+    target_gray = float(rng.uniform(42, 78))
+    alpha = float(rng.uniform(0.58, 0.78))
+    image_float = image.astype(np.float32)
+    crack_texture = np.full_like(image_float, target_gray)
+    crack_texture += rng.normal(0, float(rng.uniform(3, 9)), size=image_float.shape).astype(np.float32)
+    output = image_float * (1 - soft_mask[..., None] * alpha) + crack_texture * (soft_mask[..., None] * alpha)
+    output = output * (1 - core_mask[..., None] * float(rng.uniform(0.14, 0.28)))
 
-    return output.astype(np.uint8), mask, {
-        "line_width": line_width,
-        "points": points,
-        "branches": branches,
-        "dark_factor": dark_factor,
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "main_width": main_width,
+        "segment_widths": [int(width_value) for width_value in segment_widths],
+        "points": [[int(x), int(y)] for x, y in points],
+        "branches": [[[int(x), int(y)] for x, y in branch] for branch in branches],
+        "target_gray": target_gray,
+        "alpha": alpha,
     }
 
 
