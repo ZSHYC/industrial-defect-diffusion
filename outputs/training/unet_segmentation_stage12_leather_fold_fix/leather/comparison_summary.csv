@@ -1,0 +1,2 @@
+experiment,train_samples,test_samples,pixel_precision,pixel_recall,pixel_f1,pixel_dice,pixel_iou,best_pixel_f1,image_precision,image_recall,image_f1
+combined,350,124,0.20040778040519666,0.6770912403218461,0.3092752228766583,0.3092752228766583,0.1829246409950116,0.40105861154211925,0.9484536082474226,1.0,0.9735449735449735

@@ -1,0 +1,76 @@
+{
+  "experiment": "combined",
+  "train_samples": 350,
+  "synthetic_train_samples": 150,
+  "good_negative_samples": 200,
+  "test_samples": 124,
+  "image_size": 256,
+  "threshold": 0.5,
+  "best_f1_diagnostic_threshold": 0.95,
+  "pixel_precision": 0.20040778040519666,
+  "pixel_recall": 0.6770912403218461,
+  "pixel_f1": 0.3092752228766583,
+  "pixel_dice": 0.3092752228766583,
+  "pixel_iou": 0.1829246409950116,
+  "best_pixel_precision": 0.2991618130227001,
+  "best_pixel_recall": 0.6082245331713982,
+  "best_pixel_f1": 0.40105861154211925,
+  "best_pixel_iou": 0.25082758782604614,
+  "image_precision": 0.9484536082474226,
+  "image_recall": 1.0,
+  "image_f1": 0.9735449735449735,
+  "threshold_sweep_best": {
+    "threshold": 0.9500000000000002,
+    "pixel_precision": 0.2991618130227001,
+    "pixel_recall": 0.6082245331713982,
+    "pixel_f1": 0.40105861154211925,
+    "pixel_iou": 0.25082758782604614
+  },
+  "postprocess_sweep_best": {
+    "threshold": 0.95,
+    "min_component_area_ratio": 0.001,
+    "min_component_area_pixels": 66,
+    "pixel_precision": 0.325591370850465,
+    "pixel_recall": 0.5905761348109914,
+    "pixel_f1": 0.419762744555871,
+    "pixel_iou": 0.2656327352805613
+  },
+  "class_metrics": {
+    "good": {
+      "count": 32.0,
+      "mean_dice": 0.0,
+      "mean_iou": 0.0,
+      "mean_recall": 0.0
+    },
+    "color": {
+      "count": 19.0,
+      "mean_dice": 0.46252875635619684,
+      "mean_iou": 0.3249895403360923,
+      "mean_recall": 0.9070487514064752
+    },
+    "cut": {
+      "count": 19.0,
+      "mean_dice": 0.15552485223384205,
+      "mean_iou": 0.09061988517713042,
+      "mean_recall": 0.6464221719507897
+    },
+    "fold": {
+      "count": 17.0,
+      "mean_dice": 0.48729906777196,
+      "mean_iou": 0.3350119011737589,
+      "mean_recall": 0.6659605441866328
+    },
+    "glue": {
+      "count": 19.0,
+      "mean_dice": 0.724015645259073,
+      "mean_iou": 0.600163906732317,
+      "mean_recall": 0.8610426456349111
+    },
+    "poke": {
+      "count": 18.0,
+      "mean_dice": 0.3921964570799949,
+      "mean_iou": 0.26578510225582513,
+      "mean_recall": 0.5107778582590199
+    }
+  }
+}

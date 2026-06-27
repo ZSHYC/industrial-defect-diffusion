@@ -136,6 +136,7 @@ conda activate industrial-defect-diffusion
 第 9 阶段：wood scratch 专项修复与跨类别误差分析
 第 10 阶段：leather 第三类别泛化验证
 第 11 阶段：leather precision / cut 专项修复
+第 12 阶段：leather fold 专项修复与保守模型召回补强
 ```
 
 重要原则：
@@ -166,6 +167,7 @@ conda activate industrial-defect-diffusion
 - [第 9 阶段：wood scratch 专项修复与跨类别误差分析](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-09-wood-scratch-fix.md)
 - [第 10 阶段：leather 第三类别泛化验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-10-leather-generalization.md)
 - [第 11 阶段：leather precision / cut 专项修复](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-11-leather-precision-cut-fix.md)
+- [第 12 阶段：leather fold 专项修复与保守模型召回补强](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-12-leather-fold-fix.md)
 
 后续阶段文档将继续放在：
 
@@ -671,6 +673,54 @@ stage11 leather precision / cut fixed:
 ```text
 加入真实 good negative 后，leather 的过分割问题明显缓解。
 这说明生成增强不仅要补缺陷样本，也要用正常样本约束模型边界。
+```
+
+### 第 12 阶段 leather fold 专项修复与保守模型召回补强
+
+第 12 阶段针对第 11 阶段剩余最弱项 `leather/fold`：
+
+```text
+stage11 fold Dice = 0.0972
+stage11 fold Recall = 0.0571
+```
+
+分布分析发现旧 synthetic fold 面积偏大、bbox 高度偏高。
+第 12 阶段将 fold 生成改成更窄、更浅的 ridge / shadow 褶皱，并在 Stage 11 稳定训练集上追加高质量 traditional fold 样本。
+
+第 12 阶段关键训练命令：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category leather --image-size 256 --epochs 30 --batch-size 4 --seed 604 --traditional-summary outputs/stage12_leather_fold_fix/quality_filter/leather/accepted_traditional_summary.csv --diffusion-summary outputs/stage12_leather_fold_fix/quality_filter/leather/accepted_diffusion_summary.csv --output-dir outputs/training/unet_segmentation_stage12_leather_fold_fix --experiments combined --good-negative-samples 200
+```
+
+第 11 / 第 12 阶段对比：
+
+```text
+stage11 leather precision / cut fixed:
+  Pixel Precision = 0.8752
+  Pixel Recall = 0.3282
+  Pixel F1 = 0.4774
+  Best Pixel F1 = 0.5219
+  Image F1 = 0.9667
+  fold Dice = 0.0972
+  fold Recall = 0.0571
+
+stage12 leather fold fixed:
+  Pixel Precision = 0.2004
+  Pixel Recall = 0.6771
+  Pixel F1 = 0.3093
+  Best Pixel F1 = 0.4011
+  Image F1 = 0.9735
+  fold Dice = 0.4873
+  fold Recall = 0.6660
+```
+
+第 12 阶段结论：
+
+```text
+fold 专项修复有效，但会带来 precision / recall 权衡。
+leather 当前 overall 推荐模型仍是第 11 阶段。
+第 12 阶段作为 fold 召回补强和类别级 tradeoff 分析。
 ```
 
 ---

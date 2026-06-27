@@ -719,43 +719,70 @@ def generate_leather_cut(image: np.ndarray, rng: np.random.Generator) -> tuple[n
 
 def generate_leather_fold(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
     height, width = image.shape[:2]
-    center = np.array([float(rng.uniform(width * 0.18, width * 0.82)), float(rng.uniform(height * 0.18, height * 0.82))])
-    angle = float(rng.choice([rng.normal(0, 0.30), rng.normal(np.pi / 2, 0.30), rng.uniform(0, np.pi)]))
+    mode = str(rng.choice(["shallow_crease", "narrow_band", "double_ridge"], p=[0.40, 0.35, 0.25]))
+    center = np.array([float(rng.uniform(width * 0.20, width * 0.80)), float(rng.uniform(height * 0.22, height * 0.78))])
+    angle = float(rng.normal(0, 0.34))
+    if rng.random() < 0.18:
+        angle += float(rng.choice([-1, 1]) * rng.uniform(0.35, 0.75))
     direction = np.array([np.cos(angle), np.sin(angle)])
     normal = np.array([-direction[1], direction[0]])
-    length = float(min(width, height) * rng.uniform(0.25, 0.62))
-    band_width = float(min(width, height) * rng.uniform(0.035, 0.085))
-    segments = int(rng.integers(5, 9))
+    if mode == "shallow_crease":
+        length = float(min(width, height) * rng.uniform(0.22, 0.40))
+        band_width = float(min(width, height) * rng.uniform(0.012, 0.023))
+    elif mode == "narrow_band":
+        length = float(min(width, height) * rng.uniform(0.28, 0.50))
+        band_width = float(min(width, height) * rng.uniform(0.016, 0.030))
+    else:
+        length = float(min(width, height) * rng.uniform(0.24, 0.44))
+        band_width = float(min(width, height) * rng.uniform(0.018, 0.034))
+    segments = int(rng.integers(5, 8))
     left: list[tuple[int, int]] = []
     right: list[tuple[int, int]] = []
     ridge_points: list[tuple[int, int]] = []
+    shadow_points: list[tuple[int, int]] = []
     for index in range(segments):
         t = index / max(segments - 1, 1) - 0.5
-        base = center + direction * length * t + normal * float(rng.normal(0, min(width, height) * 0.018))
-        half_width = band_width * float(rng.uniform(0.75, 1.30))
+        curve = normal * float(np.sin((t + 0.5) * np.pi) * rng.normal(0, min(width, height) * 0.010))
+        base = center + direction * length * t + curve + normal * float(rng.normal(0, min(width, height) * 0.006))
+        half_width = band_width * float(rng.uniform(0.82, 1.18))
         left_point = base - normal * half_width
         right_point = base + normal * half_width
         left.append((int(np.clip(left_point[0], 0, width - 1)), int(np.clip(left_point[1], 0, height - 1))))
         right.append((int(np.clip(right_point[0], 0, width - 1)), int(np.clip(right_point[1], 0, height - 1))))
         ridge_points.append((int(np.clip(base[0], 0, width - 1)), int(np.clip(base[1], 0, height - 1))))
+        shadow = base + normal * half_width * float(rng.uniform(0.32, 0.72))
+        shadow_points.append((int(np.clip(shadow[0], 0, width - 1)), int(np.clip(shadow[1], 0, height - 1))))
     points = left + right[::-1]
 
-    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(2.5, 5.0)))
-    mask = (soft_mask > 0.20).astype(np.uint8)
+    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(1.2, 2.8)))
+    mask = (soft_mask > 0.30).astype(np.uint8)
     ridge_img = Image.new("L", (width, height), 0)
-    ImageDraw.Draw(ridge_img).line(ridge_points, fill=255, width=max(2, int(band_width * 0.35)), joint="curve")
-    ridge = np.array(ridge_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(2, 5)))), dtype=np.float32) / 255.0
+    shadow_img = Image.new("L", (width, height), 0)
+    ridge_width = max(2, int(band_width * float(rng.uniform(0.30, 0.55))))
+    ImageDraw.Draw(ridge_img).line(ridge_points, fill=255, width=ridge_width, joint="curve")
+    ImageDraw.Draw(shadow_img).line(shadow_points, fill=255, width=max(2, int(ridge_width * 0.9)), joint="curve")
+    if mode == "double_ridge":
+        second_points: list[tuple[int, int]] = []
+        for point in ridge_points:
+            offset = np.array(point, dtype=np.float32) - normal * band_width * float(rng.uniform(0.35, 0.65))
+            second_points.append((int(np.clip(offset[0], 0, width - 1)), int(np.clip(offset[1], 0, height - 1))))
+        ImageDraw.Draw(ridge_img).line(second_points, fill=190, width=max(1, int(ridge_width * 0.75)), joint="curve")
+    ridge = np.array(ridge_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(1.0, 2.4)))), dtype=np.float32) / 255.0
+    shadow = np.array(shadow_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(1.2, 2.8)))), dtype=np.float32) / 255.0
 
     image_float = image.astype(np.float32)
     local_mean = image_float.mean(axis=2, keepdims=True)
-    folded = image_float * float(rng.uniform(0.86, 1.08)) + local_mean * float(rng.uniform(-0.04, 0.08))
-    folded = folded + soft_mask[..., None] * float(rng.uniform(-12, 16))
-    folded = folded + ridge[..., None] * float(rng.uniform(10, 28))
-    alpha = float(rng.uniform(0.42, 0.68))
+    folded = image_float * float(rng.uniform(0.94, 1.04)) + local_mean * float(rng.uniform(-0.02, 0.05))
+    folded = folded + soft_mask[..., None] * float(rng.uniform(-2, 11))
+    folded = folded + ridge[..., None] * float(rng.uniform(16, 32))
+    folded = folded - shadow[..., None] * float(rng.uniform(3, 10))
+    alpha = float(rng.uniform(0.42, 0.66))
     output = image_float * (1 - soft_mask[..., None] * alpha) + folded * (soft_mask[..., None] * alpha)
     return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "mode": mode,
         "points": [[int(x), int(y)] for x, y in points],
         "ridge_points": [[int(x), int(y)] for x, y in ridge_points],
+        "shadow_points": [[int(x), int(y)] for x, y in shadow_points],
         "length": length,
         "band_width": band_width,
         "angle": angle,

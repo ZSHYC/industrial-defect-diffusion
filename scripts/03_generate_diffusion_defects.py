@@ -37,7 +37,7 @@ CATEGORY_PROMPTS = {
     "leather": {
         "color": "a realistic dark color stain defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
         "cut": "a realistic narrow cut defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
-        "fold": "a realistic elongated fold crease defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
+        "fold": "a realistic shallow elongated fold crease defect on industrial leather surface, subtle raised ridge and shadow, follows fine leather grain texture, inspection image, visible local defect",
         "glue": "a realistic pale translucent glue smear defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
         "poke": "a realistic small poke hole defect on industrial leather surface, fine leather grain texture, inspection image, visible local defect",
     },
