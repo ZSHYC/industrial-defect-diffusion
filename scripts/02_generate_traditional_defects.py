@@ -11,7 +11,10 @@ from PIL import Image, ImageDraw, ImageFilter
 
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-DEFECT_TYPES = ["crack", "glue_strip", "gray_stroke", "oil", "rough"]
+CATEGORY_DEFECT_TYPES = {
+    "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
+    "wood": ["color", "hole", "liquid", "scratch", "combined"],
+}
 
 
 def list_images(folder: Path) -> list[Path]:
@@ -383,6 +386,139 @@ def generate_rough(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndar
     }
 
 
+def generate_wood_color(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    target_area_ratio = float(rng.uniform(0.018, 0.070))
+    fill_factor = float(rng.uniform(0.45, 0.72))
+    aspect = float(rng.choice([rng.uniform(0.55, 1.1), rng.uniform(1.2, 3.8)]))
+    bbox_area = target_area_ratio * width * height / fill_factor
+    axis_y = float(np.sqrt(bbox_area / max(aspect, 0.1)) * 0.5)
+    axis_x = float(axis_y * aspect)
+    axis_x = float(np.clip(axis_x, width * 0.06, width * 0.28))
+    axis_y = float(np.clip(axis_y, height * 0.06, height * 0.26))
+    center_x = float(rng.uniform(width * 0.12, width * 0.88))
+    center_y = float(rng.uniform(height * 0.12, height * 0.88))
+    angle = float(rng.uniform(0, np.pi))
+
+    yy, xx = np.mgrid[0:height, 0:width].astype(np.float32)
+    dx = xx - center_x
+    dy = yy - center_y
+    cos_a = np.cos(angle)
+    sin_a = np.sin(angle)
+    u = (dx * cos_a + dy * sin_a) / axis_x
+    v = (-dx * sin_a + dy * cos_a) / axis_y
+    field = np.clip(1.0 - (u * u + v * v), 0.0, 1.0)
+    coarse = Image.fromarray((rng.random((max(8, height // 20), max(8, width // 20))) * 255).astype(np.uint8), mode="L")
+    coarse = coarse.resize((width, height), Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(radius=5))
+    noise = np.array(coarse, dtype=np.float32) / 255.0
+    field = field * (0.78 + 0.35 * noise)
+    mask = (field > float(rng.uniform(0.34, 0.48))).astype(np.uint8)
+
+    soft_mask = np.array(
+        Image.fromarray(mask * 255).filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(3.0, 6.0)))),
+        dtype=np.float32,
+    ) / 255.0
+    tint = np.array([
+        float(rng.uniform(70, 135)),
+        float(rng.uniform(45, 95)),
+        float(rng.uniform(25, 70)),
+    ])
+    alpha = float(rng.uniform(0.35, 0.58))
+    output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + tint * (soft_mask[..., None] * alpha)
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "center": [center_x, center_y],
+        "axis_x": axis_x,
+        "axis_y": axis_y,
+        "angle": angle,
+        "tint": tint.tolist(),
+        "alpha": alpha,
+    }
+
+
+def generate_wood_hole(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    center_x = int(rng.integers(width * 0.18, width * 0.82))
+    center_y = int(rng.integers(height * 0.18, height * 0.82))
+    radius_x = float(rng.uniform(width * 0.045, width * 0.12))
+    radius_y = float(rng.uniform(height * 0.045, height * 0.12))
+    point_count = int(rng.integers(10, 18))
+    points: list[tuple[int, int]] = []
+    for index in range(point_count):
+        angle = 2 * np.pi * index / point_count
+        jitter = float(rng.uniform(0.55, 1.35))
+        x = center_x + np.cos(angle) * radius_x * jitter
+        y = center_y + np.sin(angle) * radius_y * jitter
+        points.append((int(np.clip(x, 0, width - 1)), int(np.clip(y, 0, height - 1))))
+
+    soft_mask = draw_soft_polygon((width, height), points, blur_radius=float(rng.uniform(2.0, 4.5)))
+    mask = (soft_mask > 0.22).astype(np.uint8)
+    image_float = image.astype(np.float32)
+    dark_tone = np.array([
+        float(rng.uniform(15, 45)),
+        float(rng.uniform(12, 35)),
+        float(rng.uniform(8, 28)),
+    ])
+    alpha = float(rng.uniform(0.62, 0.86))
+    output = image_float * (1 - soft_mask[..., None] * alpha) + dark_tone * (soft_mask[..., None] * alpha)
+    edge = np.clip(soft_mask - np.array(Image.fromarray(mask * 255).filter(ImageFilter.MinFilter(5)), dtype=np.float32) / 255.0, 0, 1)
+    output = output + edge[..., None] * float(rng.uniform(12, 28))
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "center": [center_x, center_y],
+        "radius_x": radius_x,
+        "radius_y": radius_y,
+        "point_count": point_count,
+        "dark_tone": dark_tone.tolist(),
+        "alpha": alpha,
+    }
+
+
+def generate_wood_liquid(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    synthetic, mask, parameters = generate_oil(image, rng)
+    parameters["wood_alias"] = "liquid"
+    return synthetic, mask, parameters
+
+
+def generate_wood_scratch(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    height, width = image.shape[:2]
+    line_count = int(rng.integers(1, 4))
+    mask_img = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask_img)
+    scratches: list[list[tuple[int, int]]] = []
+    for _ in range(line_count):
+        point_count = int(rng.integers(3, 6))
+        points = random_polyline(rng, width, height, point_count)
+        line_width = int(rng.integers(2, 6))
+        draw.line(points, fill=255, width=line_width, joint="curve")
+        scratches.append(points)
+    soft_mask = np.array(mask_img.filter(ImageFilter.GaussianBlur(radius=float(rng.uniform(0.4, 1.2)))), dtype=np.float32) / 255.0
+    mask = (np.array(mask_img) > 0).astype(np.uint8)
+    scratch_tone = np.array([
+        float(rng.uniform(160, 220)),
+        float(rng.uniform(120, 175)),
+        float(rng.uniform(70, 120)),
+    ])
+    alpha = float(rng.uniform(0.36, 0.62))
+    output = image.astype(np.float32) * (1 - soft_mask[..., None] * alpha) + scratch_tone * (soft_mask[..., None] * alpha)
+    return np.clip(output, 0, 255).astype(np.uint8), mask, {
+        "line_count": line_count,
+        "scratches": [[[int(x), int(y)] for x, y in points] for points in scratches],
+        "scratch_tone": scratch_tone.tolist(),
+        "alpha": alpha,
+    }
+
+
+def generate_wood_combined(image: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray, dict[str, object]]:
+    first_name, second_name = rng.choice(["color", "hole", "liquid", "scratch"], size=2, replace=False).tolist()
+    first_image, first_mask, first_params = WOOD_GENERATORS[first_name](image, rng)
+    second_image, second_mask, second_params = WOOD_GENERATORS[second_name](first_image, rng)
+    combined_mask = np.logical_or(first_mask > 0, second_mask > 0).astype(np.uint8)
+    return second_image, combined_mask, {
+        "components": [first_name, second_name],
+        "first_parameters": first_params,
+        "second_parameters": second_params,
+    }
+
+
 GENERATORS = {
     "crack": generate_crack,
     "glue_strip": generate_glue_strip,
@@ -391,8 +527,28 @@ GENERATORS = {
     "rough": generate_rough,
 }
 
+WOOD_GENERATORS = {
+    "color": generate_wood_color,
+    "hole": generate_wood_hole,
+    "liquid": generate_wood_liquid,
+    "scratch": generate_wood_scratch,
+}
+WOOD_GENERATORS["combined"] = generate_wood_combined
 
-def save_preview(rows: list[dict[str, object]], output_path: Path) -> None:
+CATEGORY_GENERATORS = {
+    "tile": GENERATORS,
+    "wood": WOOD_GENERATORS,
+}
+
+
+def defect_types_for_category(category: str) -> list[str]:
+    if category not in CATEGORY_DEFECT_TYPES:
+        supported = ", ".join(sorted(CATEGORY_DEFECT_TYPES))
+        raise ValueError(f"Unsupported category '{category}'. Supported categories: {supported}.")
+    return CATEGORY_DEFECT_TYPES[category]
+
+
+def save_preview(rows: list[dict[str, object]], output_path: Path, defect_types: list[str]) -> None:
     selected: list[dict[str, object]] = []
     seen: set[str] = set()
     for row in rows:
@@ -400,7 +556,7 @@ def save_preview(rows: list[dict[str, object]], output_path: Path) -> None:
         if defect_type not in seen:
             selected.append(row)
             seen.add(defect_type)
-        if len(selected) == len(DEFECT_TYPES):
+        if len(selected) == len(defect_types):
             break
 
     fig, axes = plt.subplots(len(selected), 4, figsize=(13, 3.4 * len(selected)))
@@ -424,7 +580,13 @@ def save_preview(rows: list[dict[str, object]], output_path: Path) -> None:
     plt.close(fig)
 
 
-def save_real_vs_traditional_preview(rows: list[dict[str, object]], data_root: Path, category: str, output_path: Path) -> None:
+def save_real_vs_traditional_preview(
+    rows: list[dict[str, object]],
+    data_root: Path,
+    category: str,
+    output_path: Path,
+    defect_types: list[str],
+) -> None:
     selected: list[dict[str, object]] = []
     seen: set[str] = set()
     for row in rows:
@@ -432,7 +594,7 @@ def save_real_vs_traditional_preview(rows: list[dict[str, object]], data_root: P
         if defect_type not in seen:
             selected.append(row)
             seen.add(defect_type)
-        if len(selected) == len(DEFECT_TYPES):
+        if len(selected) == len(defect_types):
             break
 
     fig, axes = plt.subplots(len(selected), 6, figsize=(18, 3.2 * len(selected)))
@@ -495,7 +657,7 @@ def write_json(payload: dict[str, object], output_path: Path) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate traditional synthetic defects for MVTec AD tile images.")
+    parser = argparse.ArgumentParser(description="Generate traditional synthetic defects for MVTec AD images.")
     parser.add_argument(
         "--data-root",
         type=Path,
@@ -508,9 +670,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--defect-types",
         nargs="+",
-        choices=DEFECT_TYPES,
-        default=DEFECT_TYPES,
-        help="Defect types to generate.",
+        default=None,
+        help="Defect types to generate. Defaults to all configured defects for the category.",
     )
     parser.add_argument(
         "--output-dir",
@@ -523,6 +684,15 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    configured_defect_types = defect_types_for_category(args.category)
+    if args.defect_types is None:
+        args.defect_types = configured_defect_types
+    else:
+        unknown = sorted(set(args.defect_types) - set(configured_defect_types))
+        if unknown:
+            raise ValueError(f"Unsupported defect types for {args.category}: {', '.join(unknown)}")
+    generators = CATEGORY_GENERATORS[args.category]
+
     category_root = args.data_root / args.category
     train_good_dir = category_root / "train" / "good"
     if not train_good_dir.exists():
@@ -543,7 +713,7 @@ def main() -> None:
     rows: list[dict[str, object]] = []
 
     for defect_type in args.defect_types:
-        generator = GENERATORS[defect_type]
+        generator = generators[defect_type]
         for index in range(args.samples_per_type):
             source_path = normal_images[int(rng.integers(0, len(normal_images)))]
             source = read_rgb(source_path)
@@ -580,8 +750,8 @@ def main() -> None:
             })
 
     write_csv(rows, output_root / "summary.csv")
-    save_preview(rows, output_root / "preview.png")
-    save_real_vs_traditional_preview(rows, args.data_root, args.category, output_root / "real_vs_traditional_preview.png")
+    save_preview(rows, output_root / "preview.png", args.defect_types)
+    save_real_vs_traditional_preview(rows, args.data_root, args.category, output_root / "real_vs_traditional_preview.png", args.defect_types)
 
     print(f"Generated {len(rows)} traditional synthetic defects.")
     print(f"Output dir: {output_root.as_posix()}")

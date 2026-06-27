@@ -13,14 +13,26 @@ from diffusers import StableDiffusionInpaintPipeline
 from PIL import Image
 
 
-DEFECT_TYPES = ["crack", "glue_strip", "gray_stroke", "oil", "rough"]
+CATEGORY_DEFECT_TYPES = {
+    "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
+    "wood": ["color", "hole", "liquid", "scratch", "combined"],
+}
 
-PROMPTS = {
-    "crack": "a realistic long branching dark hairline crack fracture across industrial ceramic tile surface, thin irregular fracture lines, inspection image, natural texture",
-    "glue_strip": "a realistic pale translucent glue strip defect on industrial ceramic tile surface, inspection image, natural texture",
-    "gray_stroke": "a realistic dark gray black irregular smudge stain defect on industrial ceramic tile surface, rough local contamination, inspection image, visible defect region",
-    "oil": "a realistic yellow brown translucent oil stain defect on industrial ceramic tile surface, inspection image, visible contamination",
-    "rough": "a realistic rough damaged texture defect on industrial ceramic tile surface, inspection image, visible local abnormal area",
+CATEGORY_PROMPTS = {
+    "tile": {
+        "crack": "a realistic long branching dark hairline crack fracture across industrial ceramic tile surface, thin irregular fracture lines, inspection image, natural texture",
+        "glue_strip": "a realistic pale translucent glue strip defect on industrial ceramic tile surface, inspection image, natural texture",
+        "gray_stroke": "a realistic dark gray black irregular smudge stain defect on industrial ceramic tile surface, rough local contamination, inspection image, visible defect region",
+        "oil": "a realistic yellow brown translucent oil stain defect on industrial ceramic tile surface, inspection image, visible contamination",
+        "rough": "a realistic rough damaged texture defect on industrial ceramic tile surface, inspection image, visible local abnormal area",
+    },
+    "wood": {
+        "color": "a realistic dark color stain defect on industrial wood surface, natural grain texture, inspection image, visible local discoloration",
+        "hole": "a realistic dark irregular hole defect on industrial wood surface, damaged wood grain, inspection image, visible local defect",
+        "liquid": "a realistic translucent liquid stain defect on industrial wood surface, natural grain texture, inspection image, visible wet contamination",
+        "scratch": "a realistic thin scratch defect on industrial wood surface, shallow bright irregular scratch lines, natural grain texture, inspection image",
+        "combined": "realistic combined defects on industrial wood surface, local stain and scratch damage, natural grain texture, inspection image",
+    },
 }
 
 NEGATIVE_PROMPT = "cartoon, painting, text, watermark, logo, unrealistic, oversaturated, blurry, distorted, object, people"
@@ -76,7 +88,14 @@ def load_traditional_rows(summary_path: Path, samples_per_type: int, defect_type
     return selected
 
 
-def save_preview(rows: list[dict[str, object]], output_path: Path) -> None:
+def defect_types_for_category(category: str) -> list[str]:
+    if category not in CATEGORY_DEFECT_TYPES:
+        supported = ", ".join(sorted(CATEGORY_DEFECT_TYPES))
+        raise ValueError(f"Unsupported category '{category}'. Supported categories: {supported}.")
+    return CATEGORY_DEFECT_TYPES[category]
+
+
+def save_preview(rows: list[dict[str, object]], output_path: Path, defect_types: list[str]) -> None:
     selected: list[dict[str, object]] = []
     seen: set[str] = set()
     for row in rows:
@@ -84,7 +103,7 @@ def save_preview(rows: list[dict[str, object]], output_path: Path) -> None:
         if defect_type not in seen:
             selected.append(row)
             seen.add(defect_type)
-        if len(selected) == len(DEFECT_TYPES):
+        if len(selected) == len(defect_types):
             break
 
     fig, axes = plt.subplots(len(selected), 4, figsize=(13, 3.4 * len(selected)))
@@ -108,7 +127,7 @@ def save_preview(rows: list[dict[str, object]], output_path: Path) -> None:
     plt.close(fig)
 
 
-def save_traditional_vs_diffusion_preview(rows: list[dict[str, object]], output_path: Path) -> None:
+def save_traditional_vs_diffusion_preview(rows: list[dict[str, object]], output_path: Path, defect_types: list[str]) -> None:
     selected: list[dict[str, object]] = []
     seen: set[str] = set()
     for row in rows:
@@ -116,7 +135,7 @@ def save_traditional_vs_diffusion_preview(rows: list[dict[str, object]], output_
         if defect_type not in seen:
             selected.append(row)
             seen.add(defect_type)
-        if len(selected) == len(DEFECT_TYPES):
+        if len(selected) == len(defect_types):
             break
 
     fig, axes = plt.subplots(len(selected), 5, figsize=(16, 3.3 * len(selected)))
@@ -188,9 +207,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--defect-types",
         nargs="+",
-        choices=DEFECT_TYPES,
-        default=DEFECT_TYPES,
-        help="Defect types to generate.",
+        default=None,
+        help="Defect types to generate. Defaults to all configured defects for the category.",
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--image-size", type=int, default=512)
@@ -224,6 +242,15 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    configured_defect_types = defect_types_for_category(args.category)
+    if args.defect_types is None:
+        args.defect_types = configured_defect_types
+    else:
+        unknown = sorted(set(args.defect_types) - set(configured_defect_types))
+        if unknown:
+            raise ValueError(f"Unsupported defect types for {args.category}: {', '.join(unknown)}")
+    prompts = CATEGORY_PROMPTS[args.category]
+
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested, but torch.cuda.is_available() is False.")
     if not 0.0 < args.strength <= 1.0:
@@ -255,7 +282,7 @@ def main() -> None:
     result_rows: list[dict[str, object]] = []
     for global_index, row in enumerate(selected_rows):
         defect_type = row["defect_type"]
-        prompt = PROMPTS[defect_type]
+        prompt = prompts[defect_type]
         source_path = Path(row["source_image"])
         mask_path = Path(row["output_mask"])
         traditional_image_path = Path(row["output_image"])
@@ -327,8 +354,8 @@ def main() -> None:
         })
 
     write_csv(result_rows, output_root / "summary.csv")
-    save_preview(result_rows, output_root / "preview.png")
-    save_traditional_vs_diffusion_preview(result_rows, output_root / "traditional_vs_diffusion_preview.png")
+    save_preview(result_rows, output_root / "preview.png", args.defect_types)
+    save_traditional_vs_diffusion_preview(result_rows, output_root / "traditional_vs_diffusion_preview.png", args.defect_types)
 
     print(f"Generated {len(result_rows)} diffusion synthetic defects.")
     print(f"Output dir: {output_root.as_posix()}")

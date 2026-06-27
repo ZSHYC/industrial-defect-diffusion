@@ -18,8 +18,10 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
 
-DEFECT_TYPES = ["crack", "glue_strip", "gray_stroke", "oil", "rough"]
-TEST_TYPES = ["good", *DEFECT_TYPES]
+CATEGORY_DEFECT_TYPES = {
+    "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
+    "wood": ["color", "combined", "hole", "liquid", "scratch"],
+}
 EXPERIMENTS = ["traditional", "diffusion", "combined"]
 EXPERIMENT_SEED_OFFSETS = {
     "traditional": 0,
@@ -137,6 +139,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def defect_types_for_category(category: str) -> list[str]:
+    if category not in CATEGORY_DEFECT_TYPES:
+        supported = ", ".join(sorted(CATEGORY_DEFECT_TYPES))
+        raise ValueError(f"Unsupported category '{category}'. Supported categories: {supported}.")
+    return CATEGORY_DEFECT_TYPES[category]
+
+
 def seed_everything(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -147,15 +156,15 @@ def seed_everything(seed: int) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-def validate_dataset(data_root: Path, category: str) -> Path:
+def validate_dataset(data_root: Path, category: str, defect_types: list[str]) -> Path:
     category_root = data_root / category
     for folder in [category_root / "test", category_root / "ground_truth"]:
         if not folder.exists():
             raise FileNotFoundError(f"Required directory not found: {folder.as_posix()}")
-    for defect_type in TEST_TYPES:
+    for defect_type in ["good", *defect_types]:
         if not (category_root / "test" / defect_type).exists():
             raise FileNotFoundError(f"Test directory not found: {defect_type}")
-    for defect_type in DEFECT_TYPES:
+    for defect_type in defect_types:
         if not (category_root / "ground_truth" / defect_type).exists():
             raise FileNotFoundError(f"Ground truth directory not found: {defect_type}")
     return category_root
@@ -191,9 +200,9 @@ def load_synthetic_samples(summary_path: Path, source: str) -> list[Segmentation
     return samples
 
 
-def collect_test_samples(category_root: Path) -> list[SegmentationSample]:
+def collect_test_samples(category_root: Path, defect_types: list[str]) -> list[SegmentationSample]:
     samples: list[SegmentationSample] = []
-    for defect_type in TEST_TYPES:
+    for defect_type in ["good", *defect_types]:
         for image_path in list_images(category_root / "test" / defect_type):
             if defect_type == "good":
                 samples.append(SegmentationSample(image_path, None, defect_type, 0, "real_test"))
@@ -354,6 +363,7 @@ def evaluate_model(
     train_sample_count: int,
     args: argparse.Namespace,
     output_root: Path,
+    defect_types: list[str],
 ) -> dict[str, object]:
     experiment_root = output_root / experiment
     prediction_dir = experiment_root / "predictions"
@@ -430,7 +440,7 @@ def evaluate_model(
     best_threshold, best_pixel = best_f1_threshold(pixel_labels_np, pixel_probs_np)
 
     class_metrics: dict[str, dict[str, float]] = {}
-    for defect_type in TEST_TYPES:
+    for defect_type in ["good", *defect_types]:
         class_rows = [row for row in rows if row["defect_type"] == defect_type]
         class_metrics[defect_type] = {
             "count": float(len(class_rows)),
@@ -465,12 +475,12 @@ def evaluate_model(
     return metrics
 
 
-def save_preview(experiment: str, test_rows_path: Path, output_path: Path, image_size: int) -> None:
+def save_preview(experiment: str, test_rows_path: Path, output_path: Path, image_size: int, defect_types: list[str]) -> None:
     rows: list[dict[str, str]]
     with test_rows_path.open("r", encoding="utf-8", newline="") as file:
         rows = list(csv.DictReader(file))
     selected: list[dict[str, str]] = []
-    for defect_type in TEST_TYPES:
+    for defect_type in ["good", *defect_types]:
         for row in rows:
             if row["defect_type"] == defect_type:
                 selected.append(row)
@@ -529,10 +539,11 @@ def main() -> None:
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested, but torch.cuda.is_available() is False.")
 
-    category_root = validate_dataset(args.data_root, args.category)
+    defect_types = defect_types_for_category(args.category)
+    category_root = validate_dataset(args.data_root, args.category, defect_types)
     traditional_samples = load_synthetic_samples(args.traditional_summary, "traditional")
     diffusion_samples = load_synthetic_samples(args.diffusion_summary, "diffusion")
-    test_samples = collect_test_samples(category_root)
+    test_samples = collect_test_samples(category_root, defect_types)
 
     output_root = args.output_dir / args.category
     if not args.keep_existing:
@@ -551,8 +562,8 @@ def main() -> None:
         experiment_root.mkdir(parents=True, exist_ok=True)
         model, losses = train_model(experiment, samples, args, output_root)
         save_loss_curve(losses, experiment_root / "loss_curve.png")
-        metrics = evaluate_model(experiment, model, test_samples, len(samples), args, output_root)
-        save_preview(experiment, experiment_root / "test_predictions.csv", experiment_root / "preview.png", args.image_size)
+        metrics = evaluate_model(experiment, model, test_samples, len(samples), args, output_root, defect_types)
+        save_preview(experiment, experiment_root / "test_predictions.csv", experiment_root / "preview.png", args.image_size, defect_types)
         comparison_rows.append(
             {
                 "experiment": experiment,

@@ -9,7 +9,6 @@ import numpy as np
 from PIL import Image
 
 
-DEFECT_TYPES = ["crack", "glue_strip", "gray_stroke", "oil", "rough"]
 SOURCES = ["traditional", "diffusion"]
 
 
@@ -124,11 +123,16 @@ def score_row(row: dict[str, str], args: argparse.Namespace) -> dict[str, object
     return scored
 
 
+def defect_types_from_rows(rows: list[dict[str, object]]) -> list[str]:
+    return sorted({str(row["defect_type"]) for row in rows})
+
+
 def select_preview_rows(rows: list[dict[str, object]], max_rows: int = 10) -> list[dict[str, object]]:
     selected: list[dict[str, object]] = []
     seen: set[tuple[str, str]] = set()
+    defect_types = defect_types_from_rows(rows)
     for source in SOURCES:
-        for defect_type in DEFECT_TYPES:
+        for defect_type in defect_types:
             key = (source, defect_type)
             for row in rows:
                 if row["synthetic_source"] == source and row["defect_type"] == defect_type and key not in seen:
@@ -176,8 +180,9 @@ def save_preview(rows: list[dict[str, object]], output_path: Path, title: str) -
 
 def summarize(rows: list[dict[str, object]]) -> list[dict[str, object]]:
     summary_rows: list[dict[str, object]] = []
+    defect_types = defect_types_from_rows(rows)
     for source in SOURCES:
-        for defect_type in DEFECT_TYPES:
+        for defect_type in defect_types:
             subset = [row for row in rows if row["synthetic_source"] == source and row["defect_type"] == defect_type]
             if not subset:
                 continue

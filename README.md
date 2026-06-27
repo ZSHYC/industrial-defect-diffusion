@@ -132,6 +132,7 @@ conda activate industrial-defect-diffusion
 第 5 阶段：分割训练与实验评估
 第 6 阶段：扩大生成数据、质量筛选与监督分割再验证
 第 7 阶段：crack 专项改进与最终实验整理
+第 8 阶段：wood 类别泛化验证与复现实验包
 ```
 
 重要原则：
@@ -158,6 +159,7 @@ conda activate industrial-defect-diffusion
 - [第 5 阶段：U-Net 监督分割训练与生成数据增强对比](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-05-unet-segmentation.md)
 - [第 6 阶段：扩大生成数据、质量筛选与监督分割再验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-06-expanded-synthesis-and-filtering.md)
 - [第 7 阶段：crack 专项改进与最终实验整理](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-07-crack-improvement-and-final-analysis.md)
+- [第 8 阶段：wood 类别泛化验证与复现实验包](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-08-wood-generalization.md)
 
 后续阶段文档将继续放在：
 
@@ -406,6 +408,71 @@ stage7 crack improved combined:
 本项目不是证明 Diffusion 图片“看起来像”，而是通过真实测试集验证生成数据是否提升分割效果。
 第 6 阶段发现 gray_stroke 失败后，通过类别级误差分析修复生成分布，Pixel F1 从 0.7667 提升到 0.8573。
 第 7 阶段继续对 crack 做专项优化，验证生成质量、类别分布和下游指标之间的关系。
+```
+
+### 第 8 阶段 wood 类别泛化验证
+
+第 8 阶段将流程从 `tile` 迁移到 `wood`，验证项目不是单类别 hard-code demo。
+
+主要改动：
+
+```text
+1. traditional 生成脚本支持 tile / wood 类别配置。
+2. Diffusion prompt 支持 tile / wood 类别配置。
+3. U-Net 训练评估脚本按 category 自动读取 defect types。
+4. 新增 wood 一键复现实验入口。
+```
+
+wood 一键复现实验：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/08_run_wood_generalization.py --local-files-only
+```
+
+分步命令：
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/01_explore_dataset.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category wood --output-dir outputs/eda
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/02_generate_traditional_defects.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category wood --samples-per-type 20 --seed 304 --output-dir outputs/stage8_wood_synthetic/traditional
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/03_generate_diffusion_defects.py --category wood --traditional-summary outputs/stage8_wood_synthetic/traditional/wood/summary.csv --samples-per-type 10 --num-inference-steps 30 --seed 304 --local-files-only --output-dir outputs/stage8_wood_synthetic/diffusion
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/06_filter_synthetic_quality.py --traditional-summary outputs/stage8_wood_synthetic/traditional/wood/summary.csv --diffusion-summary outputs/stage8_wood_synthetic/diffusion/wood/summary.csv --output-dir outputs/stage8_wood_quality_filter/wood
+```
+
+```powershell
+D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category wood --image-size 256 --epochs 30 --batch-size 4 --seed 304 --traditional-summary outputs/stage8_wood_quality_filter/wood/accepted_traditional_summary.csv --diffusion-summary outputs/stage8_wood_quality_filter/wood/accepted_diffusion_summary.csv --output-dir outputs/training/unet_segmentation_stage8_wood --experiments combined
+```
+
+第 8 阶段关键结果：
+
+```text
+wood traditional: 100
+wood diffusion: 50
+quality accepted: 144
+quality rejected: 6
+
+wood combined:
+  Pixel F1 = 0.2651
+  Best Pixel F1 = 0.2901
+  Image F1 = 0.8947
+  liquid Dice = 0.5674
+  scratch Dice = 0.0247
+```
+
+第 8 阶段结论：
+
+```text
+流程已经从 tile 迁移到 wood，说明项目不是单类别 hard-code demo。
+但 wood 像素级分割明显弱于 tile，尤其 scratch 类几乎失败。
+这说明跨类别迁移不仅要迁移代码流程，还要重新做每个类别的真实缺陷分布分析。
 ```
 
 ---

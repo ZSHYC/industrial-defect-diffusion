@@ -1,0 +1,8 @@
+split,defect_type,image_count,mask_count,missing_masks
+train,good,247,0,0
+test,color,8,8,0
+test,combined,11,11,0
+test,good,19,0,0
+test,hole,10,10,0
+test,liquid,10,10,0
+test,scratch,21,21,0
