@@ -36,7 +36,7 @@ OPTIONAL_IMPORTS = [
 ]
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Check final project reproducibility prerequisites without retraining.")
     parser.add_argument(
         "--data-root",
@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Exit non-zero when training packages or dataset checks fail. Collect-only checks are non-strict by default.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def status_mark(ok: bool) -> str:

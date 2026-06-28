@@ -75,6 +75,7 @@ outputs/final_report/final_experiment_timeline.md
 | Stage 12 | leather fold 修复 | fold 召回大幅提升，但出现 precision tradeoff |
 | Stage 13 | 最终结果整理 | 汇总最终指标、时间线和面试表达版本 |
 | Stage 14 | 工程化复现与展示升级 | 增加共享配置、复现检查和最终 Dashboard |
+| Stage 15 | 开源级健康检查 | 移除本机路径默认值，增加 configs、tests、CI 和 health check |
 
 ## 4. 最终指标总表
 
@@ -84,6 +85,7 @@ outputs/final_report/final_experiment_timeline.md
 outputs/final_report/final_metrics_summary.csv
 outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_results_dashboard.md
+outputs/final_report/project_health_check.md
 ```
 
 关键实验：
@@ -355,6 +357,7 @@ $env:DATA_ROOT="<path-to-MVTec_AD>"
 python scripts/13_collect_final_results.py
 python scripts/14_generate_final_dashboard.py
 python scripts/14_reproduction_check.py
+python scripts/15_project_health_check.py
 ```
 
 输出：
@@ -365,6 +368,7 @@ outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_experiment_timeline.md
 outputs/final_report/final_results_dashboard.md
 outputs/final_report/reproduction_check.md
+outputs/final_report/project_health_check.md
 ```
 
 重新训练推荐模型时，统一使用 `--data-root "$env:DATA_ROOT"`，不要把个人电脑的绝对路径写进命令或文档。
@@ -391,4 +395,5 @@ docs/stage-01-data-exploration.md
 ...
 docs/stage-12-leather-fold-fix.md
 docs/stage-14-engineering-reproducibility.md
+docs/stage-15-open-source-health-checks.md
 ```

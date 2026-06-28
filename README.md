@@ -179,6 +179,7 @@ Pixel Precision = 0.2004
 - [第 11 阶段：leather precision / cut 专项修复](docs/stage-11-leather-precision-cut-fix.md)
 - [第 12 阶段：leather fold 专项修复与保守模型召回补强](docs/stage-12-leather-fold-fix.md)
 - [第 14 阶段：工程化复现与项目展示升级](docs/stage-14-engineering-reproducibility.md)
+- [第 15 阶段：开源级复现规范、测试与配置化升级](docs/stage-15-open-source-health-checks.md)
 
 ## 复现入口
 
@@ -249,7 +250,15 @@ outputs/final_report/final_results_dashboard.md
 
 ```powershell
 python scripts/14_reproduction_check.py
-python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py
+python scripts/15_project_health_check.py
+python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py scripts/15_project_health_check.py
+```
+
+健康检查输出：
+
+```text
+outputs/final_report/reproduction_check.md
+outputs/final_report/project_health_check.md
 ```
 
 如需检查完整训练环境和数据集，可先设置 `DATA_ROOT`，再运行严格检查：
@@ -379,6 +388,7 @@ scripts/12_prepare_leather_fold_fix_dataset.py
 scripts/13_collect_final_results.py
 scripts/14_reproduction_check.py
 scripts/14_generate_final_dashboard.py
+scripts/15_project_health_check.py
 ```
 
 ## 项目结构
@@ -392,6 +402,7 @@ industrial-defect-diffusion/
   docs/
   scripts/
   src/
+  tests/
   outputs/
 ```
 
@@ -399,9 +410,11 @@ industrial-defect-diffusion/
 
 ```text
 README.md：最终入口和推荐结果
+configs/：类别配置和最终实验清单
 docs/：阶段文档、最终总结、面试稿
 scripts/：可复现实验脚本和阶段入口
 src/：共享类别配置、最终实验清单和通用工具
+tests/：轻量单元测试
 outputs/：实验输出、CSV、metrics、预览图
 ```
 

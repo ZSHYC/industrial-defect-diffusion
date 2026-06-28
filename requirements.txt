@@ -10,3 +10,4 @@ transformers
 accelerate
 safetensors
 huggingface_hub
+pytest

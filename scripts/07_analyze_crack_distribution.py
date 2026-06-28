@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import argparse
 import csv
+import sys
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
+from industrial_defect.config import IMAGE_EXTENSIONS  # noqa: E402
+from industrial_defect.paths import resolve_data_root  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -16,8 +22,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--data-root",
         type=Path,
-        default=Path(r"C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD"),
-        help="Path to the MVTec AD dataset root.",
+        default=None,
+        help="Path to the MVTec AD dataset root. Defaults to DATA_ROOT.",
     )
     parser.add_argument("--category", default="tile")
     parser.add_argument(
@@ -162,6 +168,7 @@ def write_csv(rows: list[dict[str, object]], output_path: Path) -> None:
 
 def main() -> None:
     args = parse_args()
+    args.data_root = resolve_data_root(args.data_root)
     rows: list[dict[str, object]] = []
     rows.extend(load_real_rows(args.data_root, args.category))
     rows.extend(load_synthetic_rows(args.old_traditional_summary, "old_traditional"))

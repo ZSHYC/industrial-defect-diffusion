@@ -99,3 +99,16 @@ downloads/
 *.jpeg
 *.gif
 *.json
+
+# Lightweight metrics required by final collect-only reproduction
+!configs/
+!configs/*.json
+!outputs/training/unet_segmentation/tile/combined/metrics.json
+!outputs/training/unet_segmentation_expanded/tile/combined/metrics.json
+!outputs/training/unet_segmentation_gray_stroke_fix/tile/combined/metrics.json
+!outputs/training/unet_segmentation_stage7/tile/combined/metrics.json
+!outputs/training/unet_segmentation_stage8_wood/wood/combined/metrics.json
+!outputs/training/unet_segmentation_stage9_wood_scratch_fix/wood/combined/metrics.json
+!outputs/training/unet_segmentation_stage10_leather/leather/combined/metrics.json
+!outputs/training/unet_segmentation_stage11_leather_precision_cut_fix/leather/combined/metrics.json
+!outputs/training/unet_segmentation_stage12_leather_fold_fix/leather/combined/metrics.json

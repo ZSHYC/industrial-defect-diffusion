@@ -5,13 +5,21 @@ import subprocess
 import sys
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from industrial_defect.paths import resolve_data_root  # noqa: E402
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the stage 8 wood generalization experiment.")
     parser.add_argument(
         "--data-root",
         type=Path,
-        default=Path(r"C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD"),
+        default=None,
+        help="Path to the MVTec AD dataset root. Defaults to DATA_ROOT.",
     )
     parser.add_argument("--category", default="wood")
     parser.add_argument("--samples-per-type", type=int, default=20)
@@ -34,6 +42,7 @@ def run_step(command: list[str]) -> None:
 
 def main() -> None:
     args = parse_args()
+    args.data_root = resolve_data_root(args.data_root)
     python = sys.executable
     category = args.category
     traditional_summary = Path("outputs") / "stage8_wood_synthetic" / "traditional" / category / "summary.csv"

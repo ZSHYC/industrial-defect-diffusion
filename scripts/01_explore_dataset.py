@@ -2,15 +2,20 @@ from __future__ import annotations
 
 import argparse
 import csv
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-
+from industrial_defect.config import IMAGE_EXTENSIONS  # noqa: E402
+from industrial_defect.paths import resolve_data_root  # noqa: E402
 
 def list_images(folder: Path) -> list[Path]:
     if not folder.exists():
@@ -229,8 +234,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--data-root",
         type=Path,
-        default=Path(r"C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD"),
-        help="Path to the MVTec AD dataset root.",
+        default=None,
+        help="Path to the MVTec AD dataset root. Defaults to DATA_ROOT.",
     )
     parser.add_argument("--category", default="tile", help="MVTec AD category name, for example: tile.")
     parser.add_argument(
@@ -245,6 +250,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    args.data_root = resolve_data_root(args.data_root)
     category_root = args.data_root / args.category
     output_dir = args.output_dir / args.category
     output_dir.mkdir(parents=True, exist_ok=True)

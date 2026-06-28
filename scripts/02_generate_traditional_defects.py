@@ -16,6 +16,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from industrial_defect.config import CATEGORY_DEFECT_TYPES, IMAGE_EXTENSIONS  # noqa: E402
+from industrial_defect.paths import resolve_data_root  # noqa: E402
 
 
 def list_images(folder: Path) -> list[Path]:
@@ -1018,8 +1019,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--data-root",
         type=Path,
-        default=Path(r"C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD"),
-        help="Path to the MVTec AD dataset root.",
+        default=None,
+        help="Path to the MVTec AD dataset root. Defaults to DATA_ROOT.",
     )
     parser.add_argument("--category", default="tile", help="MVTec AD category name.")
     parser.add_argument("--samples-per-type", type=int, default=5, help="Number of samples per defect type.")
@@ -1041,6 +1042,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    args.data_root = resolve_data_root(args.data_root)
     configured_defect_types = defect_types_for_category(args.category)
     if args.defect_types is None:
         args.defect_types = configured_defect_types
