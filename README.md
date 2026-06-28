@@ -185,6 +185,8 @@ Pixel Precision = 0.2004
 - [论文式结果表](outputs/final_report/final_paper_tables.md)
 - [诊断证据汇总](outputs/final_report/diagnostic_summary.md)
 - [项目卡片](docs/project-card.md)
+- [部署说明](docs/deployment-notes.md)
+- [部署就绪检查](outputs/final_report/deployment_readiness.md)
 
 阶段文档：
 
@@ -204,6 +206,7 @@ Pixel Precision = 0.2004
 - [第 15 阶段：开源级复现规范、测试与配置化升级](docs/stage-15-open-source-health-checks.md)
 - [第 16 阶段：最终展示资产与论文式结果可视化](docs/stage-16-final-visuals-and-paper-tables.md)
 - [第 17 阶段：诊断证据与消融汇总](docs/stage-17-diagnostic-evidence-and-ablation-summary.md)
+- [第 18 阶段：轻量推理演示与部署入口](docs/stage-18-inference-demo-and-deployment-notes.md)
 
 ## 复现入口
 
@@ -280,7 +283,7 @@ outputs/final_report/figures/
 ```powershell
 python scripts/14_reproduction_check.py
 python scripts/15_project_health_check.py
-python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py scripts/15_project_health_check.py scripts/16_generate_final_visuals.py scripts/17_collect_diagnostics.py
+python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py scripts/15_project_health_check.py scripts/16_generate_final_visuals.py scripts/17_collect_diagnostics.py scripts/18_inference_demo.py
 ```
 
 健康检查输出：
@@ -296,7 +299,43 @@ outputs/final_report/project_health_check.md
 python scripts/14_reproduction_check.py --data-root "$env:DATA_ROOT" --strict
 ```
 
-### 4. 重新运行关键最终模型
+### 4. 推理演示与部署入口
+
+本仓库不提交训练权重。公开复现时可以先运行 dry-run，检查推理接口和部署说明是否完整：
+
+```powershell
+python scripts/18_inference_demo.py --category leather --dry-run
+```
+
+输出：
+
+```text
+outputs/demo_inference/demo_requirements.md
+outputs/final_report/deployment_readiness.md
+```
+
+如果本地已有训练得到的 `best_model.pt`，可以对单张图运行本地推理：
+
+```powershell
+python scripts/18_inference_demo.py `
+  --category leather `
+  --image path/to/inspection_image.png `
+  --checkpoint path/to/best_model.pt `
+  --output-dir outputs/demo_inference
+```
+
+输出包括：
+
+```text
+probability_mask.png
+binary_mask.png
+overlay.png
+metadata.json
+```
+
+详细说明见 [部署说明](docs/deployment-notes.md) 和 [第 18 阶段文档](docs/stage-18-inference-demo-and-deployment-notes.md)。
+
+### 5. 重新运行关键最终模型
 
 下面命令用于重新训练每个类别的推荐模型。重新训练会覆盖对应输出目录，运行前请确认已有结果是否需要备份。
 

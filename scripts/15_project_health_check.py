@@ -25,6 +25,7 @@ CHECKS = [
             "scripts/15_project_health_check.py",
             "scripts/16_generate_final_visuals.py",
             "scripts/17_collect_diagnostics.py",
+            "scripts/18_inference_demo.py",
             "src/industrial_defect/config.py",
             "src/industrial_defect/final_results.py",
             "src/industrial_defect/io.py",
@@ -50,6 +51,10 @@ CHECKS = [
     {
         "name": "Collect diagnostic evidence",
         "command": [sys.executable, "scripts/17_collect_diagnostics.py"],
+    },
+    {
+        "name": "Run inference demo dry-run",
+        "command": [sys.executable, "scripts/18_inference_demo.py", "--category", "leather", "--dry-run"],
     },
     {
         "name": "Run collect-only reproduction check",
@@ -106,6 +111,26 @@ def scan_forbidden_paths() -> tuple[bool, str]:
     return not findings, "\n".join(findings) if findings else "No local absolute paths found."
 
 
+def validate_inference_docs() -> tuple[bool, str]:
+    required_files = [
+        "scripts/18_inference_demo.py",
+        "docs/deployment-notes.md",
+        "docs/stage-18-inference-demo-and-deployment-notes.md",
+        "outputs/final_report/deployment_readiness.md",
+    ]
+    missing = [path for path in required_files if not (PROJECT_ROOT / path).exists()]
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    required_readme_tokens = [
+        "scripts/18_inference_demo.py",
+        "docs/deployment-notes.md",
+        "docs/stage-18-inference-demo-and-deployment-notes.md",
+    ]
+    missing_tokens = [token for token in required_readme_tokens if token not in readme]
+    findings = [f"missing file: {path}" for path in missing]
+    findings.extend(f"README missing token: {token}" for token in missing_tokens)
+    return not findings, "\n".join(findings) if findings else "Inference docs and README entry are present."
+
+
 def main() -> None:
     args = parse_args()
     rows: list[dict[str, str]] = []
@@ -124,6 +149,14 @@ def main() -> None:
         "name": "Scan public files for local absolute paths",
         "status": "PASS" if ok else "FAIL",
         "command": "internal scan",
+        "output": output,
+    })
+
+    ok, output = validate_inference_docs()
+    rows.append({
+        "name": "Validate inference docs and readiness report",
+        "status": "PASS" if ok else "FAIL",
+        "command": "internal check",
         "output": output,
     })
 

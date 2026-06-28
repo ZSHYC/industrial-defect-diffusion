@@ -71,6 +71,7 @@ outputs/**/predictions/
 outputs/**/models/
 outputs/**/temp/
 outputs/**/cache/
+outputs/demo_inference/
 
 # Experiment probes, debug previews, and per-image prediction details
 outputs/**/debug_*/
