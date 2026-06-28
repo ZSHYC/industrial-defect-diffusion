@@ -72,6 +72,17 @@ outputs/**/models/
 outputs/**/temp/
 outputs/**/cache/
 
+# Experiment probes, debug previews, and per-image prediction details
+outputs/**/debug_*/
+outputs/**/analysis_probe/
+outputs/**/quality_filter/leather_augmented_traditional_fold/
+outputs/training/**/test_predictions.csv
+outputs/training/*_probe/
+outputs/training/*_good200/
+outputs/training/*_seed604/
+outputs/training/*_seed704/
+outputs/training/*_augmented_traditional_*/
+
 # Keep current lightweight stage outputs under version control
 !outputs/eda/
 !outputs/eda/**/
