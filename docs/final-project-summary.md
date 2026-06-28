@@ -338,10 +338,18 @@ overall Pixel F1 = 0.3093，低于 Stage 11 的 0.4774。
 
 ## 8. 复现入口
 
-收集最终结果：
+推荐先配置环境和数据路径：
 
 ```powershell
-D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/13_collect_final_results.py
+conda activate industrial-defect-diffusion
+$env:PYTHONUTF8="1"
+$env:DATA_ROOT="<path-to-MVTec_AD>"
+```
+
+快速复现最终结果表：
+
+```powershell
+python scripts/13_collect_final_results.py
 ```
 
 输出：
@@ -350,6 +358,17 @@ D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/13_collect_fin
 outputs/final_report/final_metrics_summary.csv
 outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_experiment_timeline.md
+```
+
+重新训练推荐模型时，统一使用 `--data-root "$env:DATA_ROOT"`，不要把个人电脑的绝对路径写进命令或文档。
+
+关键推荐模型：
+
+```text
+tile overall: outputs/training/unet_segmentation_gray_stroke_fix/tile/combined/metrics.json
+wood overall: outputs/training/unet_segmentation_stage9_wood_scratch_fix/wood/combined/metrics.json
+leather overall: outputs/training/unet_segmentation_stage11_leather_precision_cut_fix/leather/combined/metrics.json
+leather fold tradeoff: outputs/training/unet_segmentation_stage12_leather_fold_fix/leather/combined/metrics.json
 ```
 
 阶段详情见：

@@ -180,22 +180,57 @@ Pixel Precision = 0.2004
 
 ## 复现入口
 
-默认数据路径：
+### 1. 准备环境
+
+建议使用独立环境运行：
+
+```powershell
+conda activate industrial-defect-diffusion
+```
+
+如需重新安装依赖：
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Windows 中文路径下建议开启 UTF-8 输出，避免控制台编码问题：
+
+```powershell
+$env:PYTHONUTF8="1"
+```
+
+### 2. 配置数据路径
+
+请先下载并解压 MVTec AD，然后把 `DATA_ROOT` 指向数据集根目录。不要把本机绝对路径写进仓库。
+
+PowerShell：
+
+```powershell
+$env:DATA_ROOT="<path-to-MVTec_AD>"
+```
+
+Bash / macOS / Linux：
+
+```bash
+export DATA_ROOT="<path-to-MVTec_AD>"
+```
+
+数据目录应类似：
 
 ```text
-C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD
+$env:DATA_ROOT/
+  tile/
+  wood/
+  leather/
 ```
 
-推荐 Python：
+### 3. 快速复现最终汇总
+
+如果只想复现论文式结果表，不需要重新训练，直接收集仓库中已保存的关键 `metrics.json`：
 
 ```powershell
-D:\miniforge3\envs\industrial-defect-diffusion\python.exe
-```
-
-收集最终指标汇总：
-
-```powershell
-D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/13_collect_final_results.py
+python scripts/13_collect_final_results.py
 ```
 
 输出：
@@ -206,10 +241,110 @@ outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_experiment_timeline.md
 ```
 
-重新运行关键最终模型示例：
+检查：
 
 ```powershell
-D:\miniforge3\envs\industrial-defect-diffusion\python.exe scripts/05_train_unet_segmentation.py --data-root "C:\Users\zsh\Desktop\昂坤视觉\MVTec_AD" --category leather --image-size 256 --epochs 30 --batch-size 4 --seed 604 --traditional-summary outputs/stage11_leather_precision_cut_fix/quality_filter/leather/accepted_traditional_summary.csv --diffusion-summary outputs/stage11_leather_precision_cut_fix/quality_filter/leather/accepted_diffusion_summary.csv --output-dir outputs/training/unet_segmentation_stage11_leather_precision_cut_fix --experiments combined --good-negative-samples 100
+python -m py_compile scripts/13_collect_final_results.py
+```
+
+### 4. 重新运行关键最终模型
+
+下面命令用于重新训练每个类别的推荐模型。重新训练会覆盖对应输出目录，运行前请确认已有结果是否需要备份。
+
+说明：
+
+```text
+1. 这些命令复现最终推荐模型，不会重新跑全部 13 个阶段。
+2. 如需从零生成 synthetic 数据，请按 docs/stage-*.md 中的阶段命令顺序执行。
+3. Diffusion 生成需要本地已有模型缓存或可访问 Hugging Face。
+4. 训练结果可能因 CUDA / PyTorch / 随机性有小幅波动，验收以接近最终指标为准。
+```
+
+tile overall best：Stage 6 gray_stroke fixed
+
+```powershell
+python scripts/05_train_unet_segmentation.py `
+  --data-root "$env:DATA_ROOT" `
+  --category tile `
+  --image-size 256 `
+  --epochs 30 `
+  --batch-size 4 `
+  --seed 104 `
+  --traditional-summary outputs/gray_stroke_fix/merged/tile/traditional_summary.csv `
+  --diffusion-summary outputs/gray_stroke_fix/merged/tile/diffusion_summary.csv `
+  --output-dir outputs/training/unet_segmentation_gray_stroke_fix `
+  --experiments combined
+```
+
+wood overall best：Stage 9 scratch fixed
+
+```powershell
+python scripts/05_train_unet_segmentation.py `
+  --data-root "$env:DATA_ROOT" `
+  --category wood `
+  --image-size 256 `
+  --epochs 30 `
+  --batch-size 4 `
+  --seed 404 `
+  --traditional-summary outputs/stage9_wood_scratch_fix/quality_filter/wood/accepted_traditional_summary.csv `
+  --diffusion-summary outputs/stage9_wood_scratch_fix/quality_filter/wood/accepted_diffusion_summary.csv `
+  --output-dir outputs/training/unet_segmentation_stage9_wood_scratch_fix `
+  --experiments combined
+```
+
+leather overall best：Stage 11 precision / cut fixed
+
+```powershell
+python scripts/05_train_unet_segmentation.py `
+  --data-root "$env:DATA_ROOT" `
+  --category leather `
+  --image-size 256 `
+  --epochs 30 `
+  --batch-size 4 `
+  --seed 604 `
+  --traditional-summary outputs/stage11_leather_precision_cut_fix/quality_filter/leather/accepted_traditional_summary.csv `
+  --diffusion-summary outputs/stage11_leather_precision_cut_fix/quality_filter/leather/accepted_diffusion_summary.csv `
+  --output-dir outputs/training/unet_segmentation_stage11_leather_precision_cut_fix `
+  --experiments combined `
+  --good-negative-samples 100
+```
+
+leather fold tradeoff：Stage 12 fold recall analysis
+
+```powershell
+python scripts/05_train_unet_segmentation.py `
+  --data-root "$env:DATA_ROOT" `
+  --category leather `
+  --image-size 256 `
+  --epochs 30 `
+  --batch-size 4 `
+  --seed 604 `
+  --traditional-summary outputs/stage12_leather_fold_fix/quality_filter/leather/accepted_traditional_summary.csv `
+  --diffusion-summary outputs/stage12_leather_fold_fix/quality_filter/leather/accepted_diffusion_summary.csv `
+  --output-dir outputs/training/unet_segmentation_stage12_leather_fold_fix `
+  --experiments combined `
+  --good-negative-samples 200
+```
+
+### 5. 验收标准
+
+运行完成后，至少检查：
+
+```text
+outputs/training/unet_segmentation_gray_stroke_fix/tile/combined/metrics.json
+outputs/training/unet_segmentation_stage9_wood_scratch_fix/wood/combined/metrics.json
+outputs/training/unet_segmentation_stage11_leather_precision_cut_fix/leather/combined/metrics.json
+outputs/training/unet_segmentation_stage12_leather_fold_fix/leather/combined/metrics.json
+outputs/final_report/final_metrics_summary.csv
+```
+
+最终推荐指标应接近：
+
+```text
+tile Stage 6 Pixel F1 ~= 0.8573
+wood Stage 9 Pixel F1 ~= 0.3369
+leather Stage 11 Pixel F1 ~= 0.4774
+leather Stage 12 fold Dice ~= 0.4873
 ```
 
 ## 主要脚本
