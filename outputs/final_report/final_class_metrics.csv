@@ -1,0 +1,46 @@
+stage,category,experiment_name,role,defect_type,count,mean_dice,mean_iou,mean_recall
+stage5,tile,tile stage5 combined,baseline,crack,17.0,0.507963,0.354544,0.458621
+stage5,tile,tile stage5 combined,baseline,glue_strip,18.0,0.888278,0.802329,0.946982
+stage5,tile,tile stage5 combined,baseline,gray_stroke,16.0,0.691253,0.543634,0.727866
+stage5,tile,tile stage5 combined,baseline,oil,18.0,0.919902,0.854066,0.952639
+stage5,tile,tile stage5 combined,baseline,rough,15.0,0.742318,0.636451,0.728005
+stage6,tile,tile stage6 expanded combined,diagnostic_baseline,crack,17.0,0.593692,0.442046,0.47703
+stage6,tile,tile stage6 expanded combined,diagnostic_baseline,glue_strip,18.0,0.940635,0.88849,0.946134
+stage6,tile,tile stage6 expanded combined,diagnostic_baseline,gray_stroke,16.0,0.00216,0.001084,0.001122
+stage6,tile,tile stage6 expanded combined,diagnostic_baseline,oil,18.0,0.861576,0.758944,0.77868
+stage6,tile,tile stage6 expanded combined,diagnostic_baseline,rough,15.0,0.668265,0.537784,0.564569
+stage6,tile,tile stage6 gray_stroke fixed,overall_best,crack,17.0,0.611994,0.454265,0.473249
+stage6,tile,tile stage6 gray_stroke fixed,overall_best,glue_strip,18.0,0.940302,0.888783,0.924922
+stage6,tile,tile stage6 gray_stroke fixed,overall_best,gray_stroke,16.0,0.840876,0.732805,0.787656
+stage6,tile,tile stage6 gray_stroke fixed,overall_best,oil,18.0,0.937416,0.883113,0.893635
+stage6,tile,tile stage6 gray_stroke fixed,overall_best,rough,15.0,0.734121,0.618634,0.638406
+stage7,tile,tile stage7 crack fixed,class_specialist,crack,17.0,0.758863,0.616898,0.684105
+stage7,tile,tile stage7 crack fixed,class_specialist,glue_strip,18.0,0.924626,0.861739,0.887708
+stage7,tile,tile stage7 crack fixed,class_specialist,gray_stroke,16.0,0.839837,0.728067,0.751154
+stage7,tile,tile stage7 crack fixed,class_specialist,oil,18.0,0.906159,0.829024,0.83446
+stage7,tile,tile stage7 crack fixed,class_specialist,rough,15.0,0.711885,0.579544,0.596206
+stage8,wood,wood stage8 generalization,generalization_baseline,color,8.0,0.264956,0.180729,0.297783
+stage8,wood,wood stage8 generalization,generalization_baseline,combined,11.0,0.320991,0.222911,0.275226
+stage8,wood,wood stage8 generalization,generalization_baseline,hole,10.0,0.295968,0.1774,0.216745
+stage8,wood,wood stage8 generalization,generalization_baseline,liquid,10.0,0.567438,0.430673,0.439221
+stage8,wood,wood stage8 generalization,generalization_baseline,scratch,21.0,0.024654,0.01321,0.014575
+stage9,wood,wood stage9 scratch fixed,overall_best,color,8.0,0.436771,0.334962,0.603115
+stage9,wood,wood stage9 scratch fixed,overall_best,combined,11.0,0.448007,0.313632,0.496436
+stage9,wood,wood stage9 scratch fixed,overall_best,hole,10.0,0.299746,0.191049,0.379255
+stage9,wood,wood stage9 scratch fixed,overall_best,liquid,10.0,0.701765,0.582444,0.726584
+stage9,wood,wood stage9 scratch fixed,overall_best,scratch,21.0,0.340451,0.222573,0.416858
+stage10,leather,leather stage10 generalization,generalization_baseline,color,19.0,0.275997,0.182881,0.88864
+stage10,leather,leather stage10 generalization,generalization_baseline,cut,19.0,0.021488,0.011138,0.503133
+stage10,leather,leather stage10 generalization,generalization_baseline,fold,17.0,0.245283,0.160478,0.431742
+stage10,leather,leather stage10 generalization,generalization_baseline,glue,19.0,0.17032,0.096706,0.829925
+stage10,leather,leather stage10 generalization,generalization_baseline,poke,18.0,0.211833,0.129791,0.547979
+stage11,leather,leather stage11 precision cut fixed,overall_best,color,19.0,0.852975,0.754729,0.836084
+stage11,leather,leather stage11 precision cut fixed,overall_best,cut,19.0,0.406403,0.278729,0.346082
+stage11,leather,leather stage11 precision cut fixed,overall_best,fold,17.0,0.097195,0.055788,0.057059
+stage11,leather,leather stage11 precision cut fixed,overall_best,glue,19.0,0.843345,0.740777,0.775167
+stage11,leather,leather stage11 precision cut fixed,overall_best,poke,18.0,0.347534,0.225022,0.234163
+stage12,leather,leather stage12 fold fixed,diagnostic_tradeoff,color,19.0,0.462529,0.32499,0.907049
+stage12,leather,leather stage12 fold fixed,diagnostic_tradeoff,cut,19.0,0.155525,0.09062,0.646422
+stage12,leather,leather stage12 fold fixed,diagnostic_tradeoff,fold,17.0,0.487299,0.335012,0.665961
+stage12,leather,leather stage12 fold fixed,diagnostic_tradeoff,glue,19.0,0.724016,0.600164,0.861043
+stage12,leather,leather stage12 fold fixed,diagnostic_tradeoff,poke,18.0,0.392196,0.265785,0.510778
