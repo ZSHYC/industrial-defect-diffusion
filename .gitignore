@@ -112,3 +112,5 @@ downloads/
 !outputs/training/unet_segmentation_stage10_leather/leather/combined/metrics.json
 !outputs/training/unet_segmentation_stage11_leather_precision_cut_fix/leather/combined/metrics.json
 !outputs/training/unet_segmentation_stage12_leather_fold_fix/leather/combined/metrics.json
+!outputs/final_report/figures/
+!outputs/final_report/figures/*.png
