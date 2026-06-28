@@ -159,24 +159,24 @@ Pixel Precision = 0.2004
 
 最终汇总：
 
-- [最终项目总结](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/final-project-summary.md)
-- [面试表达稿](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/interview-talking-points.md)
-- [环境安装记录](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/environment-setup.md)
+- [最终项目总结](docs/final-project-summary.md)
+- [面试表达稿](docs/interview-talking-points.md)
+- [环境安装记录](docs/environment-setup.md)
 
 阶段文档：
 
-- [第 1 阶段：MVTec AD 数据探索与校验](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-01-data-exploration.md)
-- [第 2 阶段：传统规则伪缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-02-traditional-synthesis.md)
-- [第 3 阶段：Diffusion Inpainting 缺陷生成](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-03-diffusion-generation.md)
-- [第 4 阶段：PatchCore 风格无监督异常检测 Baseline](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-04-patchcore-baseline.md)
-- [第 5 阶段：U-Net 监督分割训练与生成数据增强对比](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-05-unet-segmentation.md)
-- [第 6 阶段：扩大生成数据、质量筛选与监督分割再验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-06-expanded-synthesis-and-filtering.md)
-- [第 7 阶段：crack 专项改进与最终实验整理](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-07-crack-improvement-and-final-analysis.md)
-- [第 8 阶段：wood 类别泛化验证与复现实验包](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-08-wood-generalization.md)
-- [第 9 阶段：wood scratch 专项修复与跨类别误差分析](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-09-wood-scratch-fix.md)
-- [第 10 阶段：leather 第三类别泛化验证](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-10-leather-generalization.md)
-- [第 11 阶段：leather precision / cut 专项修复](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-11-leather-precision-cut-fix.md)
-- [第 12 阶段：leather fold 专项修复与保守模型召回补强](C:/Users/zsh/Desktop/昂坤视觉/industrial-defect-diffusion/docs/stage-12-leather-fold-fix.md)
+- [第 1 阶段：MVTec AD 数据探索与校验](docs/stage-01-data-exploration.md)
+- [第 2 阶段：传统规则伪缺陷生成](docs/stage-02-traditional-synthesis.md)
+- [第 3 阶段：Diffusion Inpainting 缺陷生成](docs/stage-03-diffusion-generation.md)
+- [第 4 阶段：PatchCore 风格无监督异常检测 Baseline](docs/stage-04-patchcore-baseline.md)
+- [第 5 阶段：U-Net 监督分割训练与生成数据增强对比](docs/stage-05-unet-segmentation.md)
+- [第 6 阶段：扩大生成数据、质量筛选与监督分割再验证](docs/stage-06-expanded-synthesis-and-filtering.md)
+- [第 7 阶段：crack 专项改进与最终实验整理](docs/stage-07-crack-improvement-and-final-analysis.md)
+- [第 8 阶段：wood 类别泛化验证与复现实验包](docs/stage-08-wood-generalization.md)
+- [第 9 阶段：wood scratch 专项修复与跨类别误差分析](docs/stage-09-wood-scratch-fix.md)
+- [第 10 阶段：leather 第三类别泛化验证](docs/stage-10-leather-generalization.md)
+- [第 11 阶段：leather precision / cut 专项修复](docs/stage-11-leather-precision-cut-fix.md)
+- [第 12 阶段：leather fold 专项修复与保守模型召回补强](docs/stage-12-leather-fold-fix.md)
 
 ## 复现入口
 
