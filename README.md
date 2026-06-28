@@ -207,6 +207,7 @@ Pixel Precision = 0.2004
 - [第 16 阶段：最终展示资产与论文式结果可视化](docs/stage-16-final-visuals-and-paper-tables.md)
 - [第 17 阶段：诊断证据与消融汇总](docs/stage-17-diagnostic-evidence-and-ablation-summary.md)
 - [第 18 阶段：轻量推理演示与部署入口](docs/stage-18-inference-demo-and-deployment-notes.md)
+- [第 19 阶段：模型与推理代码模块化重构](docs/stage-19-model-code-refactor.md)
 
 ## 复现入口
 
@@ -283,7 +284,7 @@ outputs/final_report/figures/
 ```powershell
 python scripts/14_reproduction_check.py
 python scripts/15_project_health_check.py
-python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py scripts/15_project_health_check.py scripts/16_generate_final_visuals.py scripts/17_collect_diagnostics.py scripts/18_inference_demo.py
+python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py scripts/15_project_health_check.py scripts/16_generate_final_visuals.py scripts/17_collect_diagnostics.py scripts/18_inference_demo.py src/industrial_defect/models.py src/industrial_defect/vision.py
 ```
 
 健康检查输出：
@@ -334,6 +335,8 @@ metadata.json
 ```
 
 详细说明见 [部署说明](docs/deployment-notes.md) 和 [第 18 阶段文档](docs/stage-18-inference-demo-and-deployment-notes.md)。
+
+Stage 19 后，训练脚本和推理脚本共享 `src/industrial_defect/models.py` 中的 `LightUNet`，并共享 `src/industrial_defect/vision.py` 中的 mask / overlay 输出工具，避免 checkpoint 与推理模型定义漂移。
 
 ### 5. 重新运行关键最终模型
 

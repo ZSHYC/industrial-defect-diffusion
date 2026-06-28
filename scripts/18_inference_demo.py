@@ -134,64 +134,31 @@ def import_runtime_dependencies():
     try:
         import numpy as np
         import torch
-        import torch.nn as nn
-        import torch.nn.functional as F
         from PIL import Image
-        from torchvision import transforms
+        from industrial_defect.models import load_light_unet_checkpoint
+        from industrial_defect.vision import (
+            binary_mask_from_probability,
+            predict_probability,
+            save_binary_mask,
+            save_overlay,
+            save_probability_mask,
+        )
     except ImportError as exc:
         raise ImportError(
-            "Local inference requires torch, torchvision, numpy, and pillow. "
+            "Local inference requires torch, torchvision, numpy, pillow, and the industrial_defect package. "
             "Install the training requirements or run with --dry-run."
         ) from exc
-    return np, torch, nn, F, Image, transforms
-
-
-def build_light_unet(nn, torch):
-    class DoubleConv(nn.Module):
-        def __init__(self, in_channels: int, out_channels: int) -> None:
-            super().__init__()
-            self.block = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True),
-            )
-
-        def forward(self, x):
-            return self.block(x)
-
-    class LightUNet(nn.Module):
-        def __init__(self) -> None:
-            super().__init__()
-            self.down1 = DoubleConv(3, 32)
-            self.down2 = DoubleConv(32, 64)
-            self.down3 = DoubleConv(64, 128)
-            self.bottleneck = DoubleConv(128, 256)
-            self.pool = nn.MaxPool2d(2)
-            self.up3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-            self.conv3 = DoubleConv(256, 128)
-            self.up2 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-            self.conv2 = DoubleConv(128, 64)
-            self.up1 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
-            self.conv1 = DoubleConv(64, 32)
-            self.out = nn.Conv2d(32, 1, kernel_size=1)
-
-        def forward(self, x):
-            c1 = self.down1(x)
-            c2 = self.down2(self.pool(c1))
-            c3 = self.down3(self.pool(c2))
-            b = self.bottleneck(self.pool(c3))
-            x = self.up3(b)
-            x = self.conv3(torch.cat([x, c3], dim=1))
-            x = self.up2(x)
-            x = self.conv2(torch.cat([x, c2], dim=1))
-            x = self.up1(x)
-            x = self.conv1(torch.cat([x, c1], dim=1))
-            return self.out(x)
-
-    return LightUNet
+    return (
+        np,
+        torch,
+        Image,
+        load_light_unet_checkpoint,
+        binary_mask_from_probability,
+        predict_probability,
+        save_binary_mask,
+        save_overlay,
+        save_probability_mask,
+    )
 
 
 def resolve_device(requested: str, torch) -> str:
@@ -200,47 +167,35 @@ def resolve_device(requested: str, torch) -> str:
     return requested
 
 
-def load_model(checkpoint_path: Path, device: str, torch, nn):
-    LightUNet = build_light_unet(nn, torch)
-    model = LightUNet().to(device)
-    state = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(state)
-    model.eval()
-    return model
-
-
 def save_prediction_outputs(args: argparse.Namespace) -> None:
     validate_args(args)
-    np, torch, nn, F, Image, transforms = import_runtime_dependencies()
+    (
+        np,
+        torch,
+        Image,
+        load_light_unet_checkpoint,
+        binary_mask_from_probability,
+        predict_probability,
+        save_binary_mask,
+        save_overlay,
+        save_probability_mask,
+    ) = import_runtime_dependencies()
     device = resolve_device(args.device, torch)
-    model = load_model(args.checkpoint, device, torch, nn)
+    model = load_light_unet_checkpoint(args.checkpoint, device)
 
     image = Image.open(args.image).convert("RGB")
     original_size = image.size
-    transform = transforms.Compose([transforms.Resize((args.image_size, args.image_size), antialias=True), transforms.ToTensor()])
-    tensor = transform(image).unsqueeze(0).to(device)
-
-    with torch.no_grad():
-        prob = torch.sigmoid(model(tensor)).squeeze().cpu().numpy().astype(np.float32)
-
-    binary = (prob >= args.threshold).astype(np.uint8)
+    prob = predict_probability(model, args.image, args.image_size, device)
+    binary = binary_mask_from_probability(prob, args.threshold)
     args.output_dir.mkdir(parents=True, exist_ok=True)
-
-    prob_image = Image.fromarray((prob * 255).clip(0, 255).astype(np.uint8)).resize(original_size, Image.Resampling.BILINEAR)
-    binary_image = Image.fromarray(binary * 255).resize(original_size, Image.Resampling.NEAREST)
-    overlay = image.copy().resize(original_size)
-    overlay_array = np.array(overlay).astype(np.float32)
-    mask_array = np.array(binary_image) > 0
-    overlay_array[mask_array] = overlay_array[mask_array] * 0.45 + np.array([255, 40, 40], dtype=np.float32) * 0.55
-    overlay_image = Image.fromarray(overlay_array.clip(0, 255).astype(np.uint8))
 
     probability_path = args.output_dir / "probability_mask.png"
     binary_path = args.output_dir / "binary_mask.png"
     overlay_path = args.output_dir / "overlay.png"
     metadata_path = args.output_dir / "metadata.json"
-    prob_image.save(probability_path)
-    binary_image.save(binary_path)
-    overlay_image.save(overlay_path)
+    save_probability_mask(prob, probability_path, size=original_size)
+    save_binary_mask(binary, binary_path, size=original_size)
+    save_overlay(args.image, binary, overlay_path, output_size=original_size, color=(255, 40, 40), alpha=0.55)
 
     metadata = {
         "category": args.category,

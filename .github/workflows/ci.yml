@@ -34,7 +34,14 @@ jobs:
             scripts/14_generate_final_dashboard.py \
             scripts/15_project_health_check.py \
             scripts/16_generate_final_visuals.py \
-            scripts/17_collect_diagnostics.py
+            scripts/17_collect_diagnostics.py \
+            scripts/18_inference_demo.py \
+            src/industrial_defect/config.py \
+            src/industrial_defect/final_results.py \
+            src/industrial_defect/io.py \
+            src/industrial_defect/models.py \
+            src/industrial_defect/paths.py \
+            src/industrial_defect/vision.py
 
       - name: Run tests
         run: python -m pytest -q

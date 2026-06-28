@@ -29,7 +29,9 @@ CHECKS = [
             "src/industrial_defect/config.py",
             "src/industrial_defect/final_results.py",
             "src/industrial_defect/io.py",
+            "src/industrial_defect/models.py",
             "src/industrial_defect/paths.py",
+            "src/industrial_defect/vision.py",
         ],
     },
     {
@@ -124,6 +126,7 @@ def validate_inference_docs() -> tuple[bool, str]:
         "scripts/18_inference_demo.py",
         "docs/deployment-notes.md",
         "docs/stage-18-inference-demo-and-deployment-notes.md",
+        "docs/stage-19-model-code-refactor.md",
     ]
     missing_tokens = [token for token in required_readme_tokens if token not in readme]
     findings = [f"missing file: {path}" for path in missing]

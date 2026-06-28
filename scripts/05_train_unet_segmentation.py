@@ -12,7 +12,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
@@ -24,6 +23,8 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from industrial_defect.config import EVALUATION_DEFECT_TYPES as CATEGORY_DEFECT_TYPES  # noqa: E402
+from industrial_defect.models import LightUNet, build_light_unet  # noqa: E402
+from industrial_defect.vision import predict_probability, save_binary_mask, save_overlay  # noqa: E402
 
 EXPERIMENTS = ["traditional", "diffusion", "combined"]
 EXPERIMENT_SEED_OFFSETS = {
@@ -70,52 +71,6 @@ class SyntheticSegmentationDataset(Dataset):
             mask = Image.open(sample.mask_path).convert("L")
             mask = mask.point(lambda value: 255 if value > 0 else 0)
         return self.image_transform(image), self.mask_transform(mask)
-
-
-class DoubleConv(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
-        super().__init__()
-        self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
-
-
-class LightUNet(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.down1 = DoubleConv(3, 32)
-        self.down2 = DoubleConv(32, 64)
-        self.down3 = DoubleConv(64, 128)
-        self.bottleneck = DoubleConv(128, 256)
-        self.pool = nn.MaxPool2d(2)
-        self.up3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        self.conv3 = DoubleConv(256, 128)
-        self.up2 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.conv2 = DoubleConv(128, 64)
-        self.up1 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
-        self.conv1 = DoubleConv(64, 32)
-        self.out = nn.Conv2d(32, 1, kernel_size=1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        c1 = self.down1(x)
-        c2 = self.down2(self.pool(c1))
-        c3 = self.down3(self.pool(c2))
-        b = self.bottleneck(self.pool(c3))
-        x = self.up3(b)
-        x = self.conv3(torch.cat([x, c3], dim=1))
-        x = self.up2(x)
-        x = self.conv2(torch.cat([x, c2], dim=1))
-        x = self.up1(x)
-        x = self.conv1(torch.cat([x, c1], dim=1))
-        return self.out(x)
 
 
 def parse_args() -> argparse.Namespace:
@@ -364,20 +319,6 @@ def read_mask(sample: SegmentationSample, image_size: int) -> Image.Image:
     return mask.resize((image_size, image_size), Image.Resampling.NEAREST)
 
 
-def save_prediction_mask(prob_map: np.ndarray, output_path: Path, threshold: float = 0.5) -> None:
-    mask = (prob_map >= threshold).astype(np.uint8) * 255
-    Image.fromarray(mask).save(output_path)
-
-
-def save_overlay(image_path: Path, pred_mask: np.ndarray, output_path: Path, image_size: int) -> None:
-    image = Image.open(image_path).convert("RGB").resize((image_size, image_size), Image.Resampling.LANCZOS)
-    image_arr = np.array(image).astype(np.float32)
-    mask = pred_mask.astype(bool)
-    color = np.array([255, 0, 0], dtype=np.float32)
-    image_arr[mask] = 0.55 * image_arr[mask] + 0.45 * color
-    Image.fromarray(np.clip(image_arr, 0, 255).astype(np.uint8)).save(output_path)
-
-
 def write_json(payload: dict[str, object], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -402,7 +343,7 @@ def train_model(
     dataset = SyntheticSegmentationDataset(samples, args.image_size)
     generator = torch.Generator().manual_seed(experiment_seed)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, generator=generator)
-    model = LightUNet().to(args.device)
+    model = build_light_unet(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     losses: list[float] = []
     best_loss = float("inf")
@@ -444,16 +385,6 @@ def save_loss_curve(losses: list[float], output_path: Path) -> None:
     plt.close(fig)
 
 
-@torch.no_grad()
-def predict_probability(model: LightUNet, image_path: Path, image_size: int, device: str) -> np.ndarray:
-    transform = transforms.Compose([transforms.Resize((image_size, image_size), antialias=True), transforms.ToTensor()])
-    image = Image.open(image_path).convert("RGB")
-    tensor = transform(image).unsqueeze(0).to(device)
-    model.eval()
-    prob = torch.sigmoid(model(tensor)).squeeze().cpu().numpy().astype(np.float32)
-    return prob
-
-
 def evaluate_model(
     experiment: str,
     model: LightUNet,
@@ -488,8 +419,8 @@ def evaluate_model(
         overlay_path = overlay_dir / f"{sample_name}_overlay.png"
         metadata_path = metadata_dir / f"{sample_name}.json"
 
-        save_prediction_mask(prob, prediction_path, threshold=0.5)
-        save_overlay(sample.image_path, pred_arr, overlay_path, args.image_size)
+        save_binary_mask(pred_arr, prediction_path)
+        save_overlay(sample.image_path, pred_arr, overlay_path, image_size=args.image_size)
         per_image = binary_metrics(gt_arr.reshape(-1), pred_arr.reshape(-1))
         image_score = float(prob.max())
 
