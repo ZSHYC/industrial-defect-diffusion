@@ -73,6 +73,8 @@ outputs/final_report/final_experiment_timeline.md
 | Stage 10 | leather 泛化 | 流程迁移到 leather，但严重过分割 |
 | Stage 11 | leather precision / cut 修复 | 加入 good negatives 后修复 precision 和 cut |
 | Stage 12 | leather fold 修复 | fold 召回大幅提升，但出现 precision tradeoff |
+| Stage 13 | 最终结果整理 | 汇总最终指标、时间线和面试表达版本 |
+| Stage 14 | 工程化复现与展示升级 | 增加共享配置、复现检查和最终 Dashboard |
 
 ## 4. 最终指标总表
 
@@ -81,6 +83,7 @@ outputs/final_report/final_experiment_timeline.md
 ```text
 outputs/final_report/final_metrics_summary.csv
 outputs/final_report/final_class_metrics.csv
+outputs/final_report/final_results_dashboard.md
 ```
 
 关键实验：
@@ -350,6 +353,8 @@ $env:DATA_ROOT="<path-to-MVTec_AD>"
 
 ```powershell
 python scripts/13_collect_final_results.py
+python scripts/14_generate_final_dashboard.py
+python scripts/14_reproduction_check.py
 ```
 
 输出：
@@ -358,9 +363,17 @@ python scripts/13_collect_final_results.py
 outputs/final_report/final_metrics_summary.csv
 outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_experiment_timeline.md
+outputs/final_report/final_results_dashboard.md
+outputs/final_report/reproduction_check.md
 ```
 
 重新训练推荐模型时，统一使用 `--data-root "$env:DATA_ROOT"`，不要把个人电脑的绝对路径写进命令或文档。
+
+如果要检查完整训练环境和数据集，可运行：
+
+```powershell
+python scripts/14_reproduction_check.py --data-root "$env:DATA_ROOT" --strict
+```
 
 关键推荐模型：
 
@@ -377,4 +390,5 @@ leather fold tradeoff: outputs/training/unet_segmentation_stage12_leather_fold_f
 docs/stage-01-data-exploration.md
 ...
 docs/stage-12-leather-fold-fix.md
+docs/stage-14-engineering-reproducibility.md
 ```

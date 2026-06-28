@@ -5,6 +5,7 @@ import csv
 import json
 import random
 import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,12 +18,13 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
-CATEGORY_DEFECT_TYPES = {
-    "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
-    "wood": ["color", "combined", "hole", "liquid", "scratch"],
-    "leather": ["color", "cut", "fold", "glue", "poke"],
-}
+from industrial_defect.config import EVALUATION_DEFECT_TYPES as CATEGORY_DEFECT_TYPES  # noqa: E402
+
 EXPERIMENTS = ["traditional", "diffusion", "combined"]
 EXPERIMENT_SEED_OFFSETS = {
     "traditional": 0,

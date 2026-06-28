@@ -2,99 +2,15 @@ from __future__ import annotations
 
 import csv
 import json
+import sys
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
-EXPERIMENTS = [
-    {
-        "stage": "stage5",
-        "category": "tile",
-        "name": "tile stage5 combined",
-        "role": "baseline",
-        "metrics_path": Path("outputs/training/unet_segmentation/tile/combined/metrics.json"),
-        "note": "Small-sample combined traditional + diffusion baseline.",
-    },
-    {
-        "stage": "stage6",
-        "category": "tile",
-        "name": "tile stage6 expanded combined",
-        "role": "diagnostic_baseline",
-        "metrics_path": Path("outputs/training/unet_segmentation_expanded/tile/combined/metrics.json"),
-        "note": "Expanded generation exposed gray_stroke failure.",
-    },
-    {
-        "stage": "stage6",
-        "category": "tile",
-        "name": "tile stage6 gray_stroke fixed",
-        "role": "overall_best",
-        "metrics_path": Path("outputs/training/unet_segmentation_gray_stroke_fix/tile/combined/metrics.json"),
-        "note": "Tile overall recommended model after gray_stroke distribution repair.",
-    },
-    {
-        "stage": "stage7",
-        "category": "tile",
-        "name": "tile stage7 crack fixed",
-        "role": "class_specialist",
-        "metrics_path": Path("outputs/training/unet_segmentation_stage7/tile/combined/metrics.json"),
-        "note": "Tile crack specialist; crack improves with a small overall tradeoff.",
-    },
-    {
-        "stage": "stage8",
-        "category": "wood",
-        "name": "wood stage8 generalization",
-        "role": "generalization_baseline",
-        "metrics_path": Path("outputs/training/unet_segmentation_stage8_wood/wood/combined/metrics.json"),
-        "note": "First wood run; pipeline transferred but scratch failed.",
-    },
-    {
-        "stage": "stage9",
-        "category": "wood",
-        "name": "wood stage9 scratch fixed",
-        "role": "overall_best",
-        "metrics_path": Path("outputs/training/unet_segmentation_stage9_wood_scratch_fix/wood/combined/metrics.json"),
-        "note": "Wood overall recommended model after scratch distribution repair.",
-    },
-    {
-        "stage": "stage10",
-        "category": "leather",
-        "name": "leather stage10 generalization",
-        "role": "generalization_baseline",
-        "metrics_path": Path("outputs/training/unet_segmentation_stage10_leather/leather/combined/metrics.json"),
-        "note": "Third-category pipeline worked but severely over-segmented.",
-    },
-    {
-        "stage": "stage11",
-        "category": "leather",
-        "name": "leather stage11 precision cut fixed",
-        "role": "overall_best",
-        "metrics_path": Path("outputs/training/unet_segmentation_stage11_leather_precision_cut_fix/leather/combined/metrics.json"),
-        "note": "Leather overall recommended model after good negatives and cut repair.",
-    },
-    {
-        "stage": "stage12",
-        "category": "leather",
-        "name": "leather stage12 fold fixed",
-        "role": "diagnostic_tradeoff",
-        "metrics_path": Path("outputs/training/unet_segmentation_stage12_leather_fold_fix/leather/combined/metrics.json"),
-        "note": "Fold recall specialist; improves fold but sacrifices overall precision.",
-    },
-]
-
-
-TIMELINE = [
-    ("stage1", "Data exploration", "Validated MVTec AD tile structure and mask alignment."),
-    ("stage2", "Traditional synthesis", "Generated rule-based tile synthetic defects as a baseline."),
-    ("stage3", "Diffusion inpainting", "Used traditional masks and Stable Diffusion Inpainting for localized defect synthesis."),
-    ("stage4", "PatchCore baseline", "Built a no-synthetic-data anomaly detection baseline."),
-    ("stage5", "U-Net synthetic-data validation", "Showed combined traditional + diffusion data helps real test segmentation."),
-    ("stage6", "Expanded tile data and gray_stroke repair", "Found gray_stroke failure and repaired its synthetic distribution."),
-    ("stage7", "Tile crack repair", "Improved crack generation and validated class-level tradeoff."),
-    ("stage8", "Wood generalization", "Moved the pipeline from tile to wood and exposed scratch failure."),
-    ("stage9", "Wood scratch repair", "Repaired wood scratch distribution and improved wood overall metrics."),
-    ("stage10", "Leather generalization", "Moved to a third category and exposed severe over-segmentation."),
-    ("stage11", "Leather precision / cut repair", "Added train/good negative masks and fixed cut generation."),
-    ("stage12", "Leather fold tradeoff", "Improved fold recall while documenting the precision tradeoff."),
-]
+from industrial_defect.final_results import FINAL_EXPERIMENTS, FINAL_TIMELINE  # noqa: E402
 
 
 def read_metrics(path: Path) -> dict[str, object]:
@@ -127,7 +43,7 @@ def write_csv(rows: list[dict[str, object]], path: Path) -> None:
 def build_metric_rows() -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     summary_rows: list[dict[str, object]] = []
     class_rows: list[dict[str, object]] = []
-    for experiment in EXPERIMENTS:
+    for experiment in FINAL_EXPERIMENTS:
         metrics = read_metrics(experiment["metrics_path"])
         summary_rows.append({
             "stage": experiment["stage"],
@@ -174,7 +90,7 @@ def write_timeline(path: Path) -> None:
         "| stage | theme | result |",
         "| --- | --- | --- |",
     ]
-    for stage, theme, result in TIMELINE:
+    for stage, theme, result in FINAL_TIMELINE:
         lines.append(f"| {stage} | {theme} | {result} |")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -3,19 +3,19 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-CATEGORY_DEFECT_TYPES = {
-    "tile": ["crack", "glue_strip", "gray_stroke", "oil", "rough"],
-    "wood": ["color", "hole", "liquid", "scratch", "combined"],
-    "leather": ["color", "cut", "fold", "glue", "poke"],
-}
+from industrial_defect.config import CATEGORY_DEFECT_TYPES, IMAGE_EXTENSIONS  # noqa: E402
 
 
 def list_images(folder: Path) -> list[Path]:

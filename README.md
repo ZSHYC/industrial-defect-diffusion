@@ -162,6 +162,7 @@ Pixel Precision = 0.2004
 - [最终项目总结](docs/final-project-summary.md)
 - [面试表达稿](docs/interview-talking-points.md)
 - [环境安装记录](docs/environment-setup.md)
+- [最终结果 Dashboard](outputs/final_report/final_results_dashboard.md)
 
 阶段文档：
 
@@ -177,6 +178,7 @@ Pixel Precision = 0.2004
 - [第 10 阶段：leather 第三类别泛化验证](docs/stage-10-leather-generalization.md)
 - [第 11 阶段：leather precision / cut 专项修复](docs/stage-11-leather-precision-cut-fix.md)
 - [第 12 阶段：leather fold 专项修复与保守模型召回补强](docs/stage-12-leather-fold-fix.md)
+- [第 14 阶段：工程化复现与项目展示升级](docs/stage-14-engineering-reproducibility.md)
 
 ## 复现入口
 
@@ -231,6 +233,7 @@ $env:DATA_ROOT/
 
 ```powershell
 python scripts/13_collect_final_results.py
+python scripts/14_generate_final_dashboard.py
 ```
 
 输出：
@@ -239,12 +242,20 @@ python scripts/13_collect_final_results.py
 outputs/final_report/final_metrics_summary.csv
 outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_experiment_timeline.md
+outputs/final_report/final_results_dashboard.md
 ```
 
 检查：
 
 ```powershell
-python -m py_compile scripts/13_collect_final_results.py
+python scripts/14_reproduction_check.py
+python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py
+```
+
+如需检查完整训练环境和数据集，可先设置 `DATA_ROOT`，再运行严格检查：
+
+```powershell
+python scripts/14_reproduction_check.py --data-root "$env:DATA_ROOT" --strict
 ```
 
 ### 4. 重新运行关键最终模型
@@ -366,6 +377,8 @@ scripts/11_prepare_leather_cut_fix_dataset.py
 scripts/12_analyze_leather_fold_distribution.py
 scripts/12_prepare_leather_fold_fix_dataset.py
 scripts/13_collect_final_results.py
+scripts/14_reproduction_check.py
+scripts/14_generate_final_dashboard.py
 ```
 
 ## 项目结构
@@ -387,7 +400,8 @@ industrial-defect-diffusion/
 ```text
 README.md：最终入口和推荐结果
 docs/：阶段文档、最终总结、面试稿
-scripts/：可复现实验脚本
+scripts/：可复现实验脚本和阶段入口
+src/：共享类别配置、最终实验清单和通用工具
 outputs/：实验输出、CSV、metrics、预览图
 ```
 
