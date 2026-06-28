@@ -183,6 +183,7 @@ Pixel Precision = 0.2004
 - [环境安装记录](docs/environment-setup.md)
 - [最终结果 Dashboard](outputs/final_report/final_results_dashboard.md)
 - [论文式结果表](outputs/final_report/final_paper_tables.md)
+- [诊断证据汇总](outputs/final_report/diagnostic_summary.md)
 - [项目卡片](docs/project-card.md)
 
 阶段文档：
@@ -202,6 +203,7 @@ Pixel Precision = 0.2004
 - [第 14 阶段：工程化复现与项目展示升级](docs/stage-14-engineering-reproducibility.md)
 - [第 15 阶段：开源级复现规范、测试与配置化升级](docs/stage-15-open-source-health-checks.md)
 - [第 16 阶段：最终展示资产与论文式结果可视化](docs/stage-16-final-visuals-and-paper-tables.md)
+- [第 17 阶段：诊断证据与消融汇总](docs/stage-17-diagnostic-evidence-and-ablation-summary.md)
 
 ## 复现入口
 
@@ -258,6 +260,7 @@ $env:DATA_ROOT/
 python scripts/13_collect_final_results.py
 python scripts/14_generate_final_dashboard.py
 python scripts/16_generate_final_visuals.py
+python scripts/17_collect_diagnostics.py
 ```
 
 输出：
@@ -268,6 +271,7 @@ outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_experiment_timeline.md
 outputs/final_report/final_results_dashboard.md
 outputs/final_report/final_paper_tables.md
+outputs/final_report/diagnostic_summary.md
 outputs/final_report/figures/
 ```
 
@@ -276,7 +280,7 @@ outputs/final_report/figures/
 ```powershell
 python scripts/14_reproduction_check.py
 python scripts/15_project_health_check.py
-python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py scripts/15_project_health_check.py scripts/16_generate_final_visuals.py
+python -m py_compile scripts/13_collect_final_results.py scripts/14_reproduction_check.py scripts/14_generate_final_dashboard.py scripts/15_project_health_check.py scripts/16_generate_final_visuals.py scripts/17_collect_diagnostics.py
 ```
 
 健康检查输出：
@@ -415,6 +419,7 @@ scripts/14_reproduction_check.py
 scripts/14_generate_final_dashboard.py
 scripts/15_project_health_check.py
 scripts/16_generate_final_visuals.py
+scripts/17_collect_diagnostics.py
 ```
 
 ## 项目结构

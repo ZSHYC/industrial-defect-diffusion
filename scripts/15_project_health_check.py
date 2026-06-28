@@ -24,6 +24,7 @@ CHECKS = [
             "scripts/14_generate_final_dashboard.py",
             "scripts/15_project_health_check.py",
             "scripts/16_generate_final_visuals.py",
+            "scripts/17_collect_diagnostics.py",
             "src/industrial_defect/config.py",
             "src/industrial_defect/final_results.py",
             "src/industrial_defect/io.py",
@@ -45,6 +46,10 @@ CHECKS = [
     {
         "name": "Generate final visuals",
         "command": [sys.executable, "scripts/16_generate_final_visuals.py"],
+    },
+    {
+        "name": "Collect diagnostic evidence",
+        "command": [sys.executable, "scripts/17_collect_diagnostics.py"],
     },
     {
         "name": "Run collect-only reproduction check",

@@ -77,6 +77,7 @@ outputs/final_report/final_experiment_timeline.md
 | Stage 14 | 工程化复现与展示升级 | 增加共享配置、复现检查和最终 Dashboard |
 | Stage 15 | 开源级健康检查 | 移除本机路径默认值，增加 configs、tests、CI 和 health check |
 | Stage 16 | 最终展示资产 | 生成最终图表、论文式表格和项目卡片 |
+| Stage 17 | 诊断证据汇总 | 汇总 threshold、postprocess、baseline 和分布修复证据 |
 
 ## 4. 最终指标总表
 
@@ -88,6 +89,7 @@ outputs/final_report/final_class_metrics.csv
 outputs/final_report/final_results_dashboard.md
 outputs/final_report/project_health_check.md
 outputs/final_report/final_paper_tables.md
+outputs/final_report/diagnostic_summary.md
 outputs/final_report/figures/
 ```
 
@@ -362,6 +364,7 @@ python scripts/14_generate_final_dashboard.py
 python scripts/14_reproduction_check.py
 python scripts/15_project_health_check.py
 python scripts/16_generate_final_visuals.py
+python scripts/17_collect_diagnostics.py
 ```
 
 输出：
@@ -374,6 +377,7 @@ outputs/final_report/final_results_dashboard.md
 outputs/final_report/reproduction_check.md
 outputs/final_report/project_health_check.md
 outputs/final_report/final_paper_tables.md
+outputs/final_report/diagnostic_summary.md
 ```
 
 重新训练推荐模型时，统一使用 `--data-root "$env:DATA_ROOT"`，不要把个人电脑的绝对路径写进命令或文档。
@@ -402,5 +406,6 @@ docs/stage-12-leather-fold-fix.md
 docs/stage-14-engineering-reproducibility.md
 docs/stage-15-open-source-health-checks.md
 docs/stage-16-final-visuals-and-paper-tables.md
+docs/stage-17-diagnostic-evidence-and-ablation-summary.md
 docs/project-card.md
 ```

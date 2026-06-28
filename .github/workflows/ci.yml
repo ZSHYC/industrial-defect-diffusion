@@ -33,7 +33,8 @@ jobs:
             scripts/14_reproduction_check.py \
             scripts/14_generate_final_dashboard.py \
             scripts/15_project_health_check.py \
-            scripts/16_generate_final_visuals.py
+            scripts/16_generate_final_visuals.py \
+            scripts/17_collect_diagnostics.py
 
       - name: Run tests
         run: python -m pytest -q
@@ -43,4 +44,5 @@ jobs:
           python scripts/13_collect_final_results.py
           python scripts/14_generate_final_dashboard.py
           python scripts/16_generate_final_visuals.py
+          python scripts/17_collect_diagnostics.py
           python scripts/14_reproduction_check.py

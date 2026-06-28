@@ -1,0 +1,3 @@
+category,method,role,pixel_precision,pixel_recall,pixel_f1,image_f1,note
+tile,PatchCore-style ResNet18,unsupervised anomaly baseline,0.44574581494483095,0.7602109121368895,0.5619784275019821,0.9820359281437125,Strong image-level anomaly baseline; weaker pixel F1 than synthetic-supervised U-Net.
+tile,Synthetic-data U-Net,supervised segmentation with generated masks,0.936252,0.7906,0.857284,0.949153,Higher pixel F1 after category-level synthetic distribution repair.
